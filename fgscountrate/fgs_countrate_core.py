@@ -44,8 +44,8 @@ class FGS_Countrate():
 
         Returns
         -------
-        data : pandas data table
-            A length = 1 table containing the line from the GSC 2.4.1
+        data : pandas series
+            A length = 1 pd series containing the line from the GSC 2.4.1
             corresponding this the specific guide star ID
 
         """
@@ -59,17 +59,17 @@ class FGS_Countrate():
 
         # Read in data
         try:
-            self.data = pd.read_csv(io.StringIO(request.decode('utf-8')), skiprows=1)
-            self.data.replace(r'^\s+$', -999, regex=True, inplace=True)
+            data_frame = pd.read_csv(io.StringIO(request.decode('utf-8')), skiprows=1)
+            data_frame.replace(r'^\s+$', -999, regex=True, inplace=True)
         except pd.errors.EmptyDataError:
             raise NameError("This Guide Star ID does not exist in GSC2.4.1")
 
-        # Check length of data table
-        if len(self.data) != 1:
+        # Check length of data table and turn it from a data frame to a series
+        if len(data_frame) == 1:
+            self.data = data_frame.iloc[0]
+        else:
             # TODO: May do more fixing here later
             raise ValueError("This Guide Star ID points to multiple lines in GSC2.4.1")
-
-        # TODO: Parse data? TBD
 
         return self.data
 
