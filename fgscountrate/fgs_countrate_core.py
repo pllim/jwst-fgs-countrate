@@ -8,6 +8,7 @@ A module to find the expected FGS countrate for any JWST guide star
 Code by Shannon Osborne. Contact at sosborne@stsci.edu
 """
 
+from collections import OrderedDict
 import io
 import os
 import requests
@@ -45,7 +46,7 @@ class FGS_Countrate():
         Returns
         -------
         data : pandas series
-            A length = 1 pd series containing the line from the GSC 2.4.1
+            A pd series containing the line from the GSC 2.4.1
             corresponding this the specific guide star ID
 
         """
@@ -74,26 +75,108 @@ class FGS_Countrate():
         return self.data
 
     def get_fgs_countrate(self):
-        # call convert_id_to_jhk
+        """
+        TBD
+        """
+
+        # Query GSC to get data
+        data = self.query_gsc()
+
+        # Convert to JHK magnitudes
+        self.j_mag, self.h_mag, self.k_mag = self.convert_mag_to_jhk(data)
+
         # call convert_jhk_to_countrate
         return self.fgs_countrate
 
-    def convert_id_to_jhk(self):
-        # call query_gsc
-        # ...
-        # self.j_mag, self.h_mag, self.k_mag = value
-        return self.j_mag, self.h_mag, self.k_mag
+    def convert_mag_to_jhk(self, data):
+        """
+        Calculate the J, H, and K magnitudes of thee input data
+
+        Parameters
+        ----------
+        data : pandas series
+            A pd series containing the following stellar data:
+            JpgMag, FpgMag, NpgMag, tmassJmag, tmassHmag,
+            tmassKsMag, SDSSuMag, SDSSgMag, SDSSrMag,
+            SDSSiMag, SDSSzMag
+
+        Returns
+        -------
+        j, h, k : floats
+            Returns the j, h, and k magnitudes for the star
+
+        """
+
+        # Pull the magnitudes section of the series
+        l = ['JpgMag', 'FpgMag', 'NpgMag', 'tmassJmag', 'tmassHmag',
+             'tmassKsMag', 'SDSSuMag', 'SDSSgMag', 'SDSSrMag',
+             'SDSSiMag', 'SDSSzMag']
+        mag_series = data.loc[l]
+
+        # Rename variables for clarity
+        mag_series = mag_series.rename({
+            'JpgMag': 'B_Jmag',
+            'FpgMag': 'R_Fmag',
+            'NpgMag': 'I_Nmag',
+            'tmassJmag': 'Jmag',
+            'tmassHmag': 'Hmag',
+            'tmassKsMag': 'Kmag',
+            'SDSSuMag': 'umag',
+            'SDSSgMag': 'gmag',
+            'SDSSrMag': 'rmag',
+            'SDSSiMag': 'imag',
+            'SDSSzMag': 'zmag'})
+
+        # List of the magnitude names that are not fill values in the series
+        present_mags = list(mag_series[mag_series != -999].index)
+
+        # Create a list of magnitudes that are important in determining conversion method
+        present_mags_short = [e for e in present_mags if e in ['B_Jmag', 'R_Fmag', 'I_Nmag', 'Jmag',
+                                                               'gmag', 'imag', 'zmag']]
+
+        # Dictionary of convert methods
+        switcher = OrderedDict([
+            ('Jmag', 'convert_1'),
+            ('gmag, zmag', 'convert_2'),
+            ('gmag', 'convert_3'),
+            ('imag, zmag', 'convert_4'),
+            ('imag', 'convert_5'),
+            ('B_Jmag, I_Nmag', 'convert_6'),
+            ('B_Jmag, R_Fmag', 'convert_7'),
+            ('B_Jmag', 'convert_8'),
+            ('R_Fmag, I_Nmag', 'convert_9'),
+            ('R_Fmag', 'convert_10'),
+            ('', 'convert_11noinfo'),
+        ])
+
+        # Pull the first entry in the OrderedDict that matches what values are present.
+        for key, value in switcher.items():
+            key_list = key.split(', ')
+            if set(key_list).issubset(present_mags_short):
+                name = key
+                break
+            else:
+                name = ''  # there isn't enough information to follow the flowchart
+
+        # Get the method
+        method_name = switcher.get(name, "nothing")
+        method = getattr(self, method_name, lambda: "Invalid")
+
+        return method()
 
     # These may go in another file for cleanliness. We'll see how long they are
-    def _case1(self):
+    def convert_1(self):
         """No conversion needed. Input is already in j,h,k bands"""
         return j, h, k
-    def _case2(self):
+
+    def convert_2(self):
         return j, h, k
-    def _case3(self):
+
+    def convert_3(self):
         return j, h, k
-    def _case4(self):
-        return j, h, k
+
+    def convert_11noinfo(self):
+        raise ValueError('There is not enough information on this guide star to get its J, H and K data')
 
 
     def convert_jhk_to_countrate(self):
