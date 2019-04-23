@@ -117,14 +117,13 @@ class FGS_Countrate():
 
         # Dictionary of convert methods
         switcher = OrderedDict([
-            ('tmassJmag, tmassHmag, tmassKsMag', 'convert_tmass_jhk'),
-            ('SDSSgMag, SDSSzMag',  'convert_sdssgz_jhk'),
-            ('SDSSgMag, SDSSimag',  'convert_sdssgi_jhk'),
-            ('SDSSiMag, SDSSzMag',  'convert_sdssiz_jhk'),
-            ('JpgMag, NpgMag',      'convert_gsc2bjin_jhk'),
-            ('FpgMag, NpgMag',      'convert_gsc2rfin_jhk'),
-            ('JpgMag, FpgMag',      'convert_gsc2bjrf_jhk'),
-            ('',                    'cannot_convert_to_jhk'),
+            ('tmassJmag, tmassHmag, tmassKsMag', '_convert_tmass_jhk'),
+            ('SDSSgMag, SDSSzMag',  '_convert_sdssgz_jhk'),
+            ('SDSSgMag, SDSSimag',  '_convert_sdssgi_jhk'),
+            ('SDSSiMag, SDSSzMag',  '_convert_sdssiz_jhk'),
+            ('JpgMag, NpgMag',      '_convert_gsc2bjin_jhk'),
+            ('FpgMag, NpgMag',      '_convert_gsc2rfin_jhk'),
+            ('JpgMag, FpgMag',      '_convert_gsc2bjrf_jhk'),
         ])
 
         # Pull the first entry in the OrderedDict that matches what values are present.
@@ -134,7 +133,7 @@ class FGS_Countrate():
                 name = key
                 break
             else:
-                name = ''  # there isn't enough information to compute the conversion
+                raise ValueError('There is not enough information on this guide star to get its J, H and K data')
 
         # Get the method
         method_name = switcher.get(name, "nothing")
@@ -142,15 +141,14 @@ class FGS_Countrate():
 
         return method()
 
-    # These may go in another file for cleanliness. We'll see how long they are
-    def convert_tmass_jhk(self):
+    def _convert_tmass_jhk(self):
         """No conversion needed. 2MASS input is already in j,h,k bands"""
         j = self.data['tmassJmag']
         h = self.data['tmassHmag']
         k = self.data['tmassKsmag']
         return j, h, k
 
-    def convert_sdssgz_jhk(self):
+    def _convert_sdssgz_jhk(self):
         """Convert from SDSS_g mag and SDSS_z mag to J,H,K mag"""
         g = self.data['SDSSgMag']
         z = self.data['SDSSzMag']
@@ -159,7 +157,7 @@ class FGS_Countrate():
         k = g - 0.87 - 1.70*(g - z) + 0.01*(g - z)**2 - 0.07*(g - z)**3 + 0.001*(g - z)**4
         return j, h, k
 
-    def convert_sdssgi_jhk(self):
+    def _convert_sdssgi_jhk(self):
         """Convert from SDSS_g mag and SDSS_i mag to J,H,K mag"""
         g = self.data['SDSSgMag']
         i = self.data['SDSSiMag']
@@ -168,7 +166,7 @@ class FGS_Countrate():
         k = g - 0.637 - 2.519*(g - i) + 0.568*(g - i)**2 - 0.151*(g - i)**3 + 0.013*(g - i)**4
         return j, h, k
 
-    def convert_sdssiz_jhk(self):
+    def _convert_sdssiz_jhk(self):
         """Convert from SDSS_i mag and SDSS_z mag to J,H,K mag"""
         i = self.data['SDSSiMag']
         z = self.data['SDSSzMag']
@@ -177,7 +175,7 @@ class FGS_Countrate():
         k = i - 1.127 - 5.379*(i - z) + 6.454*(i - z)**2 - 3.499*(i - z)**3 + 0.057*(i - z)**4
         return j, h, k
 
-    def convert_gsc2bjin_jhk(self):
+    def _convert_gsc2bjin_jhk(self):
         """Convert from GSC2_B_J mag and GSC2_I_N mag to J,H,K mag"""
         b_j = self.data['JpgMag']
         i_n = self.data['NpgMag']
@@ -186,7 +184,7 @@ class FGS_Countrate():
         k = b_j + 0.06*(b_j - i_n)**2 - 1.78*(b_j - i_n) - 0.11
         return j, h, k
 
-    def convert_gsc2rfin_jhk(self):
+    def _convert_gsc2rfin_jhk(self):
         """Convert from GSC2_R_F mag and GSC2_I_N mag to J,H,K mag"""
         r_f = self.data['FpgMag']
         i_n = self.data['NpgMag']
@@ -195,7 +193,7 @@ class FGS_Countrate():
         k = r_f + 0.28*(r_f - i_n)**2 - 2.35*(r_f - i_n) - 0.73
         return j, h, k
 
-    def convert_gsc2bjrf_jhk(self):
+    def _convert_gsc2bjrf_jhk(self):
         """Convert from GSC2_B_J mag and GSC2_R_F mag to J,H,K mag"""
         b_j = self.data['JpgMag']
         r_f = self.data['FpgMag']
@@ -203,10 +201,6 @@ class FGS_Countrate():
         h = b_j - 0.24*(b_j - r_f)**2 - 1.66*(b_j - r_f) - 0.41
         k = b_j - 0.26*(b_j - r_f)**2 - 1.70*(b_j - r_f) - 0.45
         return j, h, k
-
-    @staticmethod
-    def cannot_convert_to_jhk():
-        raise ValueError('There is not enough information on this guide star to get its J, H and K data')
 
     def convert_jhk_to_countrate(self):
         # ...
