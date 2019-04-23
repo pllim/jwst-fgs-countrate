@@ -95,68 +95,46 @@ class FGS_Countrate():
         Parameters
         ----------
         data : pandas series
-            A pd series containing the following stellar data:
-            JpgMag, FpgMag, NpgMag, tmassJmag, tmassHmag,
-            tmassKsMag, SDSSuMag, SDSSgMag, SDSSrMag,
-            SDSSiMag, SDSSzMag
+            A pd series containing at least the following stellar
+            magnitude data:
+            GSC2: JpgMag, FpgMag, NpgMag
+            2MASS: tmassJmag, tmassHmag,tmassKsMag
+            SDSS: SDSSuMag, SDSSgMag, SDSSrMag, SDSSiMag, SDSSzMag
 
         Returns
         -------
         j, h, k : floats
-            Returns the j, h, and k magnitudes for the star
+            Runs another method which returns the J, H, and K
+            magnitudes for the star
 
         """
 
-        # Pull the magnitudes section of the series
+        # Pull all the magnitudes from the series
         l = ['JpgMag', 'FpgMag', 'NpgMag', 'tmassJmag', 'tmassHmag',
-             'tmassKsMag', 'SDSSuMag', 'SDSSgMag', 'SDSSrMag',
-             'SDSSiMag', 'SDSSzMag']
-        mag_series = data.loc[l]
+             'tmassKsMag', 'SDSSgMag', 'SDSSiMag', 'SDSSzMag']
 
-        # Rename variables for clarity
-        mag_series = mag_series.rename({
-            'JpgMag': 'B_Jmag',
-            'FpgMag': 'R_Fmag',
-            'NpgMag': 'I_Nmag',
-            'tmassJmag': 'Jmag',
-            'tmassHmag': 'Hmag',
-            'tmassKsMag': 'Kmag',
-            'SDSSuMag': 'umag',
-            'SDSSgMag': 'gmag',
-            'SDSSrMag': 'rmag',
-            'SDSSiMag': 'imag',
-            'SDSSzMag': 'zmag'})
-
-        # List of the magnitude names that are not fill values in the series
-        present_mags = list(mag_series[mag_series != -999].index)
-
-        # Create a list of magnitudes that are important in determining conversion method
-        present_mags_short = [e for e in present_mags if e in ['B_Jmag', 'R_Fmag', 'I_Nmag', 'Jmag',
-                                                               'gmag', 'imag', 'zmag']]
+        present_mags = data.loc[l]
 
         # Dictionary of convert methods
         switcher = OrderedDict([
-            ('Jmag', 'convert_1'),
-            ('gmag, zmag', 'convert_2'),
-            ('gmag', 'convert_3'),
-            ('imag, zmag', 'convert_4'),
-            ('imag', 'convert_5'),
-            ('B_Jmag, I_Nmag', 'convert_6'),
-            ('B_Jmag, R_Fmag', 'convert_7'),
-            ('B_Jmag', 'convert_8'),
-            ('R_Fmag, I_Nmag', 'convert_9'),
-            ('R_Fmag', 'convert_10'),
-            ('', 'convert_11noinfo'),
+            ('tmassJmag, tmassHmag, tmassKsMag', 'convert_tmass_jhk'),
+            ('SDSSgMag, SDSSzMag',  'convert_sdssgz_jhk'),
+            ('SDSSgMag, SDSSimag',  'convert_sdssgi_jhk'),
+            ('SDSSiMag, SDSSzMag',  'convert_sdssiz_jhk'),
+            ('JpgMag, NpgMag',      'convert_gsc2bjin_jhk'),
+            ('FpgMag, NpgMag',      'convert_gsc2rfin_jhk'),
+            ('JpgMag, FpgMag',      'convert_gsc2bjrf_jhk'),
+            ('',                    'cannot_convert_to_jhk'),
         ])
 
         # Pull the first entry in the OrderedDict that matches what values are present.
         for key, value in switcher.items():
             key_list = key.split(', ')
-            if set(key_list).issubset(present_mags_short):
+            if set(key_list).issubset(present_mags):
                 name = key
                 break
             else:
-                name = ''  # there isn't enough information to follow the flowchart
+                name = ''  # there isn't enough information to compute the conversion
 
         # Get the method
         method_name = switcher.get(name, "nothing")
@@ -165,19 +143,70 @@ class FGS_Countrate():
         return method()
 
     # These may go in another file for cleanliness. We'll see how long they are
-    def convert_1(self):
-        """No conversion needed. Input is already in j,h,k bands"""
+    def convert_tmass_jhk(self):
+        """No conversion needed. 2MASS input is already in j,h,k bands"""
+        j = self.data['tmassJmag']
+        h = self.data['tmassHmag']
+        k = self.data['tmassKsmag']
         return j, h, k
 
-    def convert_2(self):
+    def convert_sdssgz_jhk(self):
+        """Convert from SDSS_g mag and SDSS_z mag to J,H,K mag"""
+        g = self.data['SDSSgMag']
+        z = self.data['SDSSzMag']
+        j = g - 0.59 - 1.54*(g - z) + 0.20*(g - z)**2 - 0.04*(g - z)**3 + 0.002*(g - z)**4
+        h = g - 0.77 - 1.78*(g - z) + 0.08*(g - z)**2 - 0.04*(g - z)**3 + 0.009*(g - z)**4
+        k = g - 0.87 - 1.70*(g - z) + 0.01*(g - z)**2 - 0.07*(g - z)**3 + 0.001*(g - z)**4
         return j, h, k
 
-    def convert_3(self):
+    def convert_sdssgi_jhk(self):
+        """Convert from SDSS_g mag and SDSS_i mag to J,H,K mag"""
+        g = self.data['SDSSgMag']
+        i = self.data['SDSSiMag']
+        j = g - 0.411 - 2.260*(g - i) + 0.826*(g - i)**2 - 0.317*(g - i)**3 + 0.037*(g - i)**4
+        h = g - 0.597 - 2.400*(g - i) + 0.450*(g - i)**2 - 0.078*(g - i)**3 + 0.00025*(g - i)**4
+        k = g - 0.637 - 2.519*(g - i) + 0.568*(g - i)**2 - 0.151*(g - i)**3 + 0.013*(g - i)**4
         return j, h, k
 
-    def convert_11noinfo(self):
+    def convert_sdssiz_jhk(self):
+        """Convert from SDSS_i mag and SDSS_z mag to J,H,K mag"""
+        i = self.data['SDSSiMag']
+        z = self.data['SDSSzMag']
+        j = i - 0.794 - 2.839*(i - z) + 3.071*(i - z)**2 - 3.139*(i - z)**3 + 1.164*(i - z)**4
+        h = i - 1.051 - 5.361*(i - z) + 8.398*(i - z)**2 - 7.240*(i - z)**3 + 2.111*(i - z)**4
+        k = i - 1.127 - 5.379*(i - z) + 6.454*(i - z)**2 - 3.499*(i - z)**3 + 0.057*(i - z)**4
+        return j, h, k
+
+    def convert_gsc2bjin_jhk(self):
+        """Convert from GSC2_B_J mag and GSC2_I_N mag to J,H,K mag"""
+        b_j = self.data['JpgMag']
+        i_n = self.data['NpgMag']
+        j = b_j - 1.30*(b_j - i_n) - 0.15
+        h = b_j + 0.06*(b_j - i_n)**2 - 1.71*(b_j - i_n) - 0.10
+        k = b_j + 0.06*(b_j - i_n)**2 - 1.78*(b_j - i_n) - 0.11
+        return j, h, k
+
+    def convert_gsc2rfin_jhk(self):
+        """Convert from GSC2_R_F mag and GSC2_I_N mag to J,H,K mag"""
+        r_f = self.data['FpgMag']
+        i_n = self.data['NpgMag']
+        j = r_f + 0.01*(r_f - i_n)**2 - 1.56*(r_f - i_n) - 0.44
+        h = r_f + 0.25*(r_f - i_n)**2 - 2.17*(r_f - i_n) - 0.67
+        k = r_f + 0.28*(r_f - i_n)**2 - 2.35*(r_f - i_n) - 0.73
+        return j, h, k
+
+    def convert_gsc2bjrf_jhk(self):
+        """Convert from GSC2_B_J mag and GSC2_R_F mag to J,H,K mag"""
+        b_j = self.data['JpgMag']
+        r_f = self.data['FpgMag']
+        j = b_j - 0.39*(b_j - r_f)**2 - 0.96*(b_j - r_f) - 0.55
+        h = b_j - 0.24*(b_j - r_f)**2 - 1.66*(b_j - r_f) - 0.41
+        k = b_j - 0.26*(b_j - r_f)**2 - 1.70*(b_j - r_f) - 0.45
+        return j, h, k
+
+    @staticmethod
+    def cannot_convert_to_jhk():
         raise ValueError('There is not enough information on this guide star to get its J, H and K data')
-
 
     def convert_jhk_to_countrate(self):
         # ...
