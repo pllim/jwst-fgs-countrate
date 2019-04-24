@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 
 from fgscountrate.fgs_countrate_core import FGS_Countrate
 
