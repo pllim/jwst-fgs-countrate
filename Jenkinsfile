@@ -26,6 +26,7 @@ bc0.nodetype = "linux"
 
 // (Required) Execute a series of commands to set up the build
 bc0.build_cmds = [
+    "pip install pytest",
     "python setup.py install",
 ]
 
