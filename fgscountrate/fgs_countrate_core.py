@@ -120,11 +120,11 @@ class FGS_Countrate():
 
         # Dictionary of convert methods
         method_list = []
-        for i in ['J', 'H', 'Ks']:
+        for i in ['tmassJmag', 'tmassHmag', 'tmassKsMag']:
             switcher = OrderedDict([
-                ('tmass{}mag'.format(i), '_tmass_to_jhk'),
+                (i, '_tmass_to_jhk'),
                 ('SDSSgMag, SDSSzMag',  '_sdssgz_to_jhk'),
-                ('SDSSgMag, SDSSimag',  '_sdssgi_to_jhk'),
+                ('SDSSgMag, SDSSiMag',  '_sdssgi_to_jhk'),
                 ('SDSSiMag, SDSSzMag',  '_sdssiz_to_jhk'),
                 ('JpgMag, NpgMag',      '_gsc2bjin_to_jhk'),
                 ('FpgMag, NpgMag',      '_gsc2rfin_to_jhk'),
@@ -134,15 +134,15 @@ class FGS_Countrate():
             # Pull the first entry in the OrderedDict that matches what values are present.
             for key, value in switcher.items():
                 key_list = key.split(', ')
-                if set(key_list).issubset(present_mags):
-                    setattr(self, '{}_convert_method'.format(i[0].lower()), value)
+                if set(key_list).issubset(self._present_mags):
+                    setattr(self, '{}_convert_method'.format(i[5].lower()), value)
                     break
-                else:
-                    raise ValueError('There is not enough information on this '
-                                     'guide star to get its {} magnitude'.format(i))
+            if getattr(self, '{}_convert_method'.format(i[5].lower())) is None:
+                raise ValueError('There is not enough information on this '
+                                 'guide star to get its {} magnitude'.format(i))
 
             # Get the method
-            method = getattr(self, getattr(self, '{}_convert_method'.format(i[0].lower())), lambda: "Invalid")
+            method = getattr(self, getattr(self, '{}_convert_method'.format(i[5].lower())), lambda: "Invalid")
             method_list.append(method)
 
         j = method_list[0]('J')
@@ -168,7 +168,7 @@ class FGS_Countrate():
             h = self.data['tmassHmag']
             return h
         elif mag.upper() == 'K':
-            k = self.data['tmassKsmag']
+            k = self.data['tmassKsMag']
             return k
 
     def _sdssgz_to_jhk(self, mag):

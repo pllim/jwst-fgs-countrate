@@ -25,9 +25,6 @@ def test_convert_mag_to_jhk():
     that they have the same output with both techniques.
 
     """
-    # Initialize and then re-set the data. No querying done.
-    fgs = FGS_Countrate(guide_star_id="N13I000018")
-    fgs.data = BASE_DATA
 
     full_list = ['JpgMag', 'FpgMag', 'NpgMag', 'tmassJmag', 'tmassHmag',
                  'tmassKsMag', 'SDSSgMag', 'SDSSiMag', 'SDSSzMag']
@@ -37,6 +34,10 @@ def test_convert_mag_to_jhk():
             if subset == ():
                 continue
 
+            # Recreate data
+            fgs = FGS_Countrate(guide_star_id="N13I000018")
+            fgs.data = BASE_DATA
+
             # Compute conversion
             delete_list = list(set(full_list) - set(subset))
             data2 = copy.copy(fgs.data)
@@ -44,40 +45,47 @@ def test_convert_mag_to_jhk():
                 data2[i] = -999
             try:
                 fgs.convert_mag_to_jhk(data=data2)
+                error = False
             except ValueError:
                 error = True
 
             # Compare output to here
             method_names = []
-            for i in ['J', 'H', 'Ks']:
-                if 'tmass{}mag'.format(i) in list(subset):
+            for i in ['tmassJmag', 'tmassHmag', 'tmassKsMag']:
+                if i in list(subset):
                     method_name_test = "_tmass_to_jhk"
 
-                elif all('SDSSgMag' and 'SDSSzMag') in list(subset):
+                elif set(['SDSSgMag', 'SDSSzMag']).issubset(subset):
                     method_name_test = "_sdssgz_to_jhk"
-                elif all('SDSSgMag' and 'SDSSimag') in list(subset):
+                elif set(['SDSSgMag', 'SDSSiMag']).issubset(subset):
                     method_name_test = "_sdssgi_to_jhk"
-                elif all('SDSSiMag' and 'SDSSzMag') in list(subset):
+                elif set(['SDSSiMag', 'SDSSzMag']).issubset(subset):
                     method_name_test = "_sdssiz_to_jhk"
 
-                elif all('JpgMag' and 'NpgMag') in list(subset):
+                elif set(['JpgMag', 'NpgMag']).issubset(subset):
                     method_name_test = "_gsc2bjin_to_jhk"
-                elif all('FpgMag' and 'NpgMag') in list(subset):
+                elif set(['FpgMag', 'NpgMag']).issubset(subset):
                     method_name_test = "_gsc2rfin_to_jhk"
-                elif all('JpgMag' and 'FpgMag') in list(subset):
+                elif set(['JpgMag', 'FpgMag']).issubset(subset):
                     method_name_test = "_gsc2bjrf_to_jhk"
 
                 else:
                     method_name_test = 'cannot_convert_to_jhk'
+
                 method_names.append(method_name_test)
+
+                if method_name_test != getattr(fgs, '{}_convert_method'.format(i[5].lower())):
+                    if error is False:
+                        print(subset)
+                        print("     **", error, method_name_test, getattr(fgs, '{}_convert_method'.format(i[5].lower())))
 
                 # If you could compute the JHK mags, check the same conversion method as used
                 if error is False:
                     failure_message = 'For input {} and band {}: the test called {} while the convert_mag_to_jhk ' \
-                                      'method called {}'.format(list(subset), i, method_name_test,
-                                                                getattr(fgs, '{}_convert_method'.format(i[0].lower())))
+                                      'method called {}'.format(list(subset), i[5], method_name_test,
+                                                                getattr(fgs, '{}_convert_method'.format(i[5].lower())))
 
-                    assert method_name_test == getattr(fgs, '{}_convert_method'.format(i[0].lower())), failure_message
+                    assert method_name_test == getattr(fgs, '{}_convert_method'.format(i[5].lower())), failure_message
 
             # If you can't compute the JHK mags, check methods agree it's not possible
             if error is True:
@@ -99,7 +107,7 @@ def test_tmass_to_jhk():
     input_k = 12
     fgs.data['tmassJmag'] = input_j
     fgs.data['tmassHmag'] = input_h
-    fgs.data['tmassKsmag'] = input_k
+    fgs.data['tmassKsMag'] = input_k
 
     # Run method
     j = fgs._tmass_to_jhk('J')
