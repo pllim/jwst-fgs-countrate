@@ -22,3 +22,4 @@ if not _ASTROPY_SETUP_:
     # For egg_info test builds to pass, put package imports here.
     from .utils import *
     from .fgs_countrate_core import *
+    from .conversions import *

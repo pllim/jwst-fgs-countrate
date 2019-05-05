@@ -9,14 +9,13 @@ Code by Shannon Osborne. Contact at sosborne@stsci.edu
 """
 
 from collections import OrderedDict
-import io
 import operator
-import requests
 
 import numpy as np
-import pandas as pd
 
+from . import conversions
 from . import utils
+
 
 class FGS_Countrate():
     """
@@ -55,31 +54,19 @@ class FGS_Countrate():
         self._throughput_list = None
         self._signal = None
 
-    def query_gsc(self):
+    def get_fgs_countrate(self):
         """
-        Query the Guide Star Catalog 2.4.1 using the guide star ID.
-
-        Returns
-        -------
-        data : pandas series
-            A pd series containing the line from the GSC 2.4.1
-            corresponding this the specific guide star ID
-
+        Calculate the FGS countrate value for a guide star based on it's
+        ID number. This calculation using the following steps
+            1) Query the newest guide star catalog with the guide star ID
+            2) Use the magnitudes present for that guide star to calculate
+                the J, H, and K magnitudes
+            3) Use the J, H, and K magnitudes along with the guider number
+                to calculate the FGS countrate
         """
 
-        # Query GSC
-        file_format = 'CSV'
-        catalog = 'GSC241'
-        url = 'http://gsss.stsci.edu/webservices/vo/CatalogSearch.aspx?' \
-              'GSC2ID={}&FORMAT={}&CAT={}&'.format(self.id, file_format, catalog)
-        request = requests.get(url).content
-
-        # Read in data
-        try:
-            data_frame = pd.read_csv(io.StringIO(request.decode('utf-8')), skiprows=1)
-            data_frame.replace(r'^\s+$', -999, regex=True, inplace=True)
-        except pd.errors.EmptyDataError:
-            raise NameError("This Guide Star ID does not exist in GSC2.4.1")
+        # Query GSC to get data
+        data_frame = utils.query_gsc(gs_id=self.id, catalog='GSC241')
 
         # Check length of data table and turn it from a data frame to a series
         if len(data_frame) == 1:
@@ -88,18 +75,8 @@ class FGS_Countrate():
             # TODO: May do more fixing here later
             raise ValueError("This Guide Star ID points to multiple lines in GSC2.4.1")
 
-        return self.data
-
-    def get_fgs_countrate(self):
-        """
-        This will be the main method called!
-        """
-
-        # Query GSC to get data
-        data = self.query_gsc()
-
         # Convert to JHK magnitudes
-        self.j_mag, self.h_mag, self.k_mag = self.convert_mag_to_jhk(data)
+        self.j_mag, self.h_mag, self.k_mag = self.convert_mag_to_jhk(self.data)
 
         # Compute FGS countrate
         self.fgs_countrate = self.compute_fgs_countrate()
@@ -140,13 +117,13 @@ class FGS_Countrate():
         method_list = []
         for i in ['tmassJmag', 'tmassHmag', 'tmassKsMag']:
             switcher = OrderedDict([
-                (i, '_tmass_to_jhk'),
-                ('SDSSgMag, SDSSzMag',  '_sdssgz_to_jhk'),
-                ('SDSSgMag, SDSSiMag',  '_sdssgi_to_jhk'),
-                ('SDSSiMag, SDSSzMag',  '_sdssiz_to_jhk'),
-                ('JpgMag, NpgMag',      '_gsc2bjin_to_jhk'),
-                ('FpgMag, NpgMag',      '_gsc2rfin_to_jhk'),
-                ('JpgMag, FpgMag',      '_gsc2bjrf_to_jhk'),
+                (i, 'convert_tmass_to_jhk'),
+                ('SDSSgMag, SDSSzMag',  'convert_sdssgz_to_jhk'),
+                ('SDSSgMag, SDSSiMag',  'convert_sdssgi_to_jhk'),
+                ('SDSSiMag, SDSSzMag',  'convert_sdssiz_to_jhk'),
+                ('JpgMag, NpgMag',      'convert_gsc2bjin_to_jhk'),
+                ('FpgMag, NpgMag',      'convert_gsc2rfin_to_jhk'),
+                ('JpgMag, FpgMag',      'convert_gsc2bjrf_to_jhk'),
             ])
 
             # Pull the first entry in the OrderedDict that matches what values are present.
@@ -160,169 +137,25 @@ class FGS_Countrate():
                                  'guide star to get its {} magnitude'.format(i))
 
             # Get the method
-            method = getattr(self, getattr(self, '{}_convert_method'.format(i[5].lower())), lambda: "Invalid")
+            method = getattr(conversions, getattr(self, '{}_convert_method'.format(i[5].lower())), lambda: "Invalid")
             method_list.append(method)
 
-        j = method_list[0]('J')
-        h = method_list[1]('H')
-        k = method_list[2]('K')
+        j = method_list[0](data=self.data, output_mag='J')
+        h = method_list[1](data=self.data, output_mag='H')
+        k = method_list[2](data=self.data, output_mag='K')
 
         return j, h, k
 
-    def _tmass_to_jhk(self, mag):
-        """
-        No conversion needed. 2MASS input is already in J,H,K band
-
-        Parameters
-        ----------
-        mag : str
-            The magnitude you want to convert to. Options
-            are 'J', 'H', or 'K'.
-        """
-        if mag.upper() == 'J':
-            j = self.data['tmassJmag']
-            return j
-        elif mag.upper() == 'H':
-            h = self.data['tmassHmag']
-            return h
-        elif mag.upper() == 'K':
-            k = self.data['tmassKsMag']
-            return k
-
-    def _sdssgz_to_jhk(self, mag):
-        """
-        Convert from SDSS_g mag and SDSS_z mag to J,H,K mag
-
-        Parameters
-        ----------
-        mag : str
-            The magnitude you want to convert to. Options
-            are 'J', 'H', or 'K'.
-        """
-        g = self.data['SDSSgMag']
-        z = self.data['SDSSzMag']
-        if mag.upper() == 'J':
-            j = g - 0.59 - 1.54*(g - z) + 0.20*(g - z)**2 - 0.04*(g - z)**3 + 0.002*(g - z)**4
-            return j
-        elif mag.upper() == 'H':
-            h = g - 0.77 - 1.78*(g - z) + 0.08*(g - z)**2 - 0.04*(g - z)**3 + 0.009*(g - z)**4
-            return h
-        elif mag.upper() == 'K':
-            k = g - 0.87 - 1.70*(g - z) + 0.01*(g - z)**2 - 0.07*(g - z)**3 + 0.001*(g - z)**4
-            return k
-
-    def _sdssgi_to_jhk(self, mag):
-        """
-        Convert from SDSS_g mag and SDSS_i mag to J,H,K mag
-
-        Parameters
-        ----------
-        mag : str
-            The magnitude you want to convert to. Options
-            are 'J', 'H', or 'K'.
-        """
-        g = self.data['SDSSgMag']
-        i = self.data['SDSSiMag']
-        if mag.upper() == 'J':
-            j = g - 0.411 - 2.260*(g - i) + 0.826*(g - i)**2 - 0.317*(g - i)**3 + 0.037*(g - i)**4
-            return j
-        elif mag.upper() == 'H':
-            h = g - 0.597 - 2.400*(g - i) + 0.450*(g - i)**2 - 0.078*(g - i)**3 + 0.00025*(g - i)**4
-            return h
-        elif mag.upper() == 'K':
-            k = g - 0.637 - 2.519*(g - i) + 0.568*(g - i)**2 - 0.151*(g - i)**3 + 0.013*(g - i)**4
-            return k
-
-    def _sdssiz_to_jhk(self, mag):
-        """
-        Convert from SDSS_i mag and SDSS_z mag to J,H,K mag
-
-        Parameters
-        ----------
-        mag : str
-            The magnitude you want to convert to. Options
-            are 'J', 'H', or 'K'.
-        """
-        i = self.data['SDSSiMag']
-        z = self.data['SDSSzMag']
-        if mag.upper() == 'J':
-            j = i - 0.794 - 2.839*(i - z) + 3.071*(i - z)**2 - 3.139*(i - z)**3 + 1.164*(i - z)**4
-            return j
-        elif mag.upper() == 'H':
-            h = i - 1.051 - 5.361*(i - z) + 8.398*(i - z)**2 - 7.240*(i - z)**3 + 2.111*(i - z)**4
-            return h
-        elif mag.upper() == 'K':
-            k = i - 1.127 - 5.379*(i - z) + 6.454*(i - z)**2 - 3.499*(i - z)**3 + 0.057*(i - z)**4
-            return k
-
-    def _gsc2bjin_to_jhk(self, mag):
-        """
-        Convert from GSC2_B_J mag and GSC2_I_N mag to J,H,K mag
-
-        Parameters
-        ----------
-        mag : str
-            The magnitude you want to convert to. Options
-            are 'J', 'H', or 'K'.
-        """
-        b_j = self.data['JpgMag']
-        i_n = self.data['NpgMag']
-        if mag.upper() == 'J':
-            j = b_j - 1.30*(b_j - i_n) - 0.15
-            return j
-        elif mag.upper() == 'H':
-            h = b_j + 0.06*(b_j - i_n)**2 - 1.71*(b_j - i_n) - 0.10
-            return h
-        elif mag.upper() == 'K':
-            k = b_j + 0.06*(b_j - i_n)**2 - 1.78*(b_j - i_n) - 0.11
-            return k
-
-    def _gsc2rfin_to_jhk(self, mag):
-        """
-        Convert from GSC2_R_F mag and GSC2_I_N mag to J,H,K mag
-
-        Parameters
-        ----------
-        mag : str
-            The magnitude you want to convert to. Options
-            are 'J', 'H', or 'K'.
-        """
-        r_f = self.data['FpgMag']
-        i_n = self.data['NpgMag']
-        if mag.upper() == 'J':
-            j = r_f + 0.01*(r_f - i_n)**2 - 1.56*(r_f - i_n) - 0.44
-            return j
-        elif mag.upper() == 'H':
-            h = r_f + 0.25*(r_f - i_n)**2 - 2.17*(r_f - i_n) - 0.67
-            return h
-        elif mag.upper() == 'K':
-            k = r_f + 0.28*(r_f - i_n)**2 - 2.35*(r_f - i_n) - 0.73
-            return k
-
-    def _gsc2bjrf_to_jhk(self, mag):
-        """
-        Convert from GSC2_B_J mag and GSC2_R_F mag to J,H,K mag
-
-        Parameters
-        ----------
-        mag : str
-            The magnitude you want to convert to. Options
-            are 'J', 'H', or 'K'.
-        """
-        b_j = self.data['JpgMag']
-        r_f = self.data['FpgMag']
-        if mag.upper() == 'J':
-            j = b_j - 0.39*(b_j - r_f)**2 - 0.96*(b_j - r_f) - 0.55
-            return j
-        elif mag.upper() == 'H':
-            h = b_j - 0.24*(b_j - r_f)**2 - 1.66*(b_j - r_f) - 0.41
-            return h
-        elif mag.upper() == 'K':
-            k = b_j - 0.26*(b_j - r_f)**2 - 1.70*(b_j - r_f) - 0.45
-            return k
-
     def compute_fgs_countrate(self):
-        """Compute the FGS countrate using all available values from the GSC"""
+        """
+        Compute the FGS countrate using all available values from the GSC
+
+        Returns
+        ------
+        fgs_countrate : float
+            The FGS countrate for the guide star based on J, H, and K mags
+            and the guider number
+        """
 
         planck = 6.625e-27
 
@@ -428,12 +261,20 @@ class FGS_Countrate():
         electrons = np.sum(trapezoid)
 
         # Compute FGS-Guider count rate using conversion of # electrons => 1 count
-        fgs_countrate = electrons / cr_conversion
+        self.fgs_countrate = electrons / cr_conversion
 
-        return fgs_countrate
+        return self.fgs_countrate
 
     def compute_fgs_magnitude(self):
-        """Compute the FGS magnitude using all available values from the GSC"""
+        """
+        Compute the FGS magnitude using all available values from the GSC
+
+        Returns
+        ------
+        fgs_magnitude : float
+            The FGS magnitude for the guide star based on J, H, and K mags
+            and the guider number
+            """
 
         self.compute_fgs_countrate()
 
