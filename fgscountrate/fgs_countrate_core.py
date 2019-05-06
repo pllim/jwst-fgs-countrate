@@ -12,10 +12,44 @@ from collections import OrderedDict
 import operator
 
 import numpy as np
+import pandas as pd
 
 from . import conversions
 from . import utils
 
+PLANCK = 6.625e-27
+
+# FGS-Guider + OTE throughput. # TODO Fill in SDSS
+THROUGHPUT_G1 = {
+    0.466: 0.0,
+    0.468: 999,
+    0.645: 0.23,
+    0.748: 999,
+    0.85: 0.45,
+    0.8932: 999,
+    1.25: 0.56,
+    1.65: 0.64,
+    2.17: 0.78,
+    3.0: 0.70,
+    4.0: 0.75,
+    5.0: 0.71,
+    5.5: 0.0,
+}
+THROUGHPUT_G2 = {
+    0.466: 0.0,
+    0.468: 999,
+    0.645: 0.35,
+    0.748: 999,
+    0.85: 0.64,
+    0.8932: 999,
+    1.25: 0.74,
+    1.65: 0.60,
+    2.17: 0.63,
+    3.0: 0.43,
+    4.0: 0.73,
+    5.0: 0.68,
+    5.5: 0.04,
+}
 
 class FGS_Countrate():
     """
@@ -27,7 +61,7 @@ class FGS_Countrate():
     ----------
     guide_star_id : str
         The ID of the guide star of interest. This corresponds to the
-        HST ID input in the Guide Star Catalog 2
+        HST ID input in the Guide Star Catalog
 
     guider : int
         The guider number, either 1 or 2
@@ -50,9 +84,7 @@ class FGS_Countrate():
 
         self.fgs_countrate = None
         self.fgs_magnitude = None
-        self._wave_list = None
-        self._throughput_list = None
-        self._signal = None
+        self.fgs_countrate_data = None
 
     def get_fgs_countrate(self):
         """
@@ -157,110 +189,89 @@ class FGS_Countrate():
             and the guider number
         """
 
-        planck = 6.625e-27
+        # Create initial dataframe
+        name = ['tmassJmag', 'tmassHmag', 'tmassKsMag', 'SDSSgMag', 'SDSSiMag',
+                'SDSSzMag', 'JpgMag', 'FpgMag', 'NpgMag']
+        wave = [1.25, 1.65, 2.17, 0.468, 0.748, 0.8932, 0.466, 0.645, 0.85]
+        df = pd.DataFrame(wave, columns=['Wavelength'], index=name)
 
-        # Set effective wavelengths (in microns)
-        eff_wave_dict = {
-            'tmassJmag': 1.25,
-            'tmassHmag': 1.65,
-            'tmassKsMag': 2.17,
-            'SDSSgMag': 0.468,
-            'SDSSiMag': 0.748,
-            'SDSSzMag': 0.8932,
-            'JpgMag': 0.466,
-            'FpgMag': 0.645,
-            'NpgMag': 0.85,
-        }
+        # Add magnitudes
+        df = pd.concat([df, self._all_mag_series], axis=1, sort=True)
+        df = df.rename(columns={0: 'Mag'})
 
-        # Convert to AB mag
-        ab_mag_dict = {key:utils.convert_to_abmag(value, key) if key in self._present_mags else -999
-                       for key, value in self._all_mag_series.iteritems()}
+        # Calculate and add ABMagnitudes
+        def ab_mag(row):
+            if row.name in self._present_mags:
+                return utils.convert_to_abmag(row['Mag'], row.name)
+            else:
+                return -999
 
-        ab_mag_list = [ab_mag_dict[k] for k, v in OrderedDict(sorted(
-                       eff_wave_dict.items(), key=operator.itemgetter(1))).items()
-                       if k in ab_mag_dict.keys()]  # sort to match order of increasing wavelength
+        df['ABMag'] = df.apply(lambda row: ab_mag(row), axis=1)
 
         # Sort to order of increasing wavelength
-        self._wave_list = sorted(eff_wave_dict.values())
+        df = df.sort_values('Wavelength')
 
         # Convert AB mag to flux (photons/s/m**2/micron)
-        flux_func = lambda wave, abmag: 10.0**(-(abmag+48.6)/2.5)*(1.0e4/(planck*wave))  # TODO confirm EQN
+        def calc_flux(row):
+            if row['ABMag'] != -999:
+                return 10.0 ** (-(row['ABMag'] + 48.6) / 2.5) * (1.0e4 / (PLANCK * row['Wavelength']))  # TODO confirm EQN
+            else:
+                return -999
 
-        flux_list = [flux_func(wave, ab_mag_list[i]) if ab_mag_list[i] != -999 else -999
-                     for i, wave in enumerate(self._wave_list)]
+        df['Flux'] = df.apply(lambda row: calc_flux(row), axis=1)
 
         # Fill in gaps
-        for i in range(len(flux_list)):
-            if i == 0 and flux_list[i] == -999:  # missing shortest band
+        # TODO Not quite sure about this
+        for i in range(len(df)):
+            if i == 0 and df.at[df.index[i], "Flux"] == -999:  # missing shortest band
                 flux = -99  # TODO Decide what to do here
-            elif flux_list[i] == -999:  # missing middle band
-                flux = flux[i-1] + (flux_list[i+1] - flux_list[i-1]) * \
-                                   (self._wave_list[i] - self._wave_list[i-1]) / \
-                                   (self._wave_list[i+1] - self._wave_list[i-1])
+            elif df.at[df.index[i], "Flux"] == -999:  # missing middle band
+                flux = df.at[df.index[i - 1], "Flux"] + (df.at[df.index[i + 1], "Flux"] - df.at[
+                    df.index[i - 1], "Flux"]) * \
+                                                        (df.at[df.index[i], "Wavelength"] - df.at[
+                                                            df.index[i - 1], "Wavelength"]) / \
+                                                        (df.at[df.index[i + 1], "Wavelength"] - df.at[
+                                                            df.index[i - 1], "Wavelength"])
+            elif i == len(df) and df.at[df.index[i], "Flux"] == -999:  # missing longest band
+                flux = -99  # TODO Decide what to do here
             else:
                 break
-            flux_list[i] = flux
+            df.at[df.index[i], "Flux"] = flux
 
         # Add extended wavelengths and compute flux
-        extended_waves = [3.0, 4.0, 5.0, 5.5]
-        self._wave_list.extend(extended_waves)
-
-        extend_flux_func = lambda last_flux, wave: last_flux * 2.17e0**2 / wave**2
-        extended_flux_list = [extend_flux_func(flux_list[-1], w) for w in extended_waves]
-        flux_list.extend(extended_flux_list)  # TODO how do i use list comprehension to append an already existing list
-
-        # FGS-Guider + OTE throughput. # TODO Fill in SDSS
-        throughput_g1_dict = {
-            0.466: 0.0,
-            0.468: 999,
-            0.645: 0.23,
-            0.748: 999,
-            0.85: 0.45,
-            0.8932: 999,
-            1.25: 0.56,
-            1.65: 0.64,
-            2.17: 0.78,
-            3.0: 0.70,
-            4.0: 0.75,
-            5.0: 0.71,
-            5.5: 0.0,
-        }
-        throughput_g2_dict = {
-            0.466: 0.0,
-            0.468: 999,
-            0.645: 0.35,
-            0.748: 999,
-            0.85: 0.64,
-            0.8932: 999,
-            1.25: 0.74,
-            1.65: 0.60,
-            2.17: 0.63,
-            3.0: 0.43,
-            4.0: 0.73,
-            5.0: 0.68,
-            5.5: 0.04,
-        }
+        extended_waves = np.array([3.0, 4.0, 5.0, 5.5])
+        mag = np.full(4, np.nan)
+        abmag = np.full(4, np.nan)
+        flux = df.at[df.index[-1], "Flux"] * 2.17e0 ** 2 / extended_waves ** 2
+        in_data = list(map(list, zip(extended_waves, mag, abmag, flux)))
+        df2 = pd.DataFrame(in_data, columns=['Wavelength', 'Mag', 'ABMag', 'Flux'],
+                           index=['Extend1', 'Extend2', 'Extend3', 'Extend4'])
+        df = pd.concat([df, df2], axis=0)
 
         if self.guider == 1:
-            thr_dict = throughput_g1_dict
+            df['Throughput'] = df['Wavelength'].map(THROUGHPUT_G1)
             cr_conversion = 999  # TODO NEED THIS VALUE FOR GUIDER 1
         elif self.guider == 2:
-            thr_dict = throughput_g2_dict
+            df['Throughput'] = df['Wavelength'].map(THROUGHPUT_G2)
             cr_conversion = 1.55
         else:
             raise ValueError("Guider value must be an integer either 1 or 2")
 
         # Compute number of photons reaching the FGS-Guider detector per second per micron.
-        self._throughput_list = list(OrderedDict(sorted(thr_dict.items(), key=operator.itemgetter(0))).values())
-        self._signal = np.array(flux_list) * np.array(self._throughput_list) * 25  # flux * throughput * PM area
+        def calc_signal(row):
+            return row['Flux'] * np.array(row['Throughput']) * 25
+
+        df['Signal'] = df.apply(lambda row: calc_signal(row), axis=1)
 
         # Integrate flux in photons per second per micron over the FGS-Guider wavelength range. Use trapezoid formula.
         trapezoid = np.zeros(9)
         for i in range(len(trapezoid)):
-            trapezoid[i] = (self._wave_list[i + 1] - self._wave_list[i]) * (self._signal[i] + self._signal[i + 1]) / 2.0
+            trapezoid[i] = (df.at[df.index[i + 1], "Wavelength"] - df.at[df.index[i], "Wavelength"]) \
+                           * (df.at[df.index[i], "Signal"] + df.at[df.index[i + 1], "Signal"]) / 2.0
         electrons = np.sum(trapezoid)
 
         # Compute FGS-Guider count rate using conversion of # electrons => 1 count
+        self.fgs_countrate_data = df
         self.fgs_countrate = electrons / cr_conversion
 
         return self.fgs_countrate
@@ -277,16 +288,17 @@ class FGS_Countrate():
             """
 
         self.compute_fgs_countrate()
+        df = self.fgs_countrate_data
 
-        # Computation of the FGS magnitude
-        trap1 = np.zeros(9)
-        trap2 = np.zeros(9)
-
-        for i in range(len(trap1)):
-            trap1[i] = (self._wave_list[i + 1] - self._wave_list[i]) * \
-                       (self._signal[i] + self._signal[i + 1]) / 2
-            trap2[i] = (self._wave_list[i + 1] - self._wave_list[i]) * \
-                       (self._throughput_list[i] + self._throughput_list[i + 1]) / 2
+        # Computation of the FGS magnitude  # TODO: It just ignores the last value?
+        length = len(df) - 1
+        trap1 = np.zeros(length)
+        trap2 = np.zeros(length)
+        for i in range(length):
+            trap1[i] = (df.at[df.index[i + 1], "Wavelength"] - df.at[df.index[i], "Wavelength"]) * \
+                       (df.at[df.index[i], "Signal"] + df.at[df.index[i + 1], "Signal"]) / 2
+            trap2[i] = (df.at[df.index[i + 1], "Wavelength"] - df.at[df.index[i], "Wavelength"]) * \
+                       (df.at[df.index[i], "Throughput"] + df.at[df.index[i + 1], "Throughput"]) / 2
 
         sum_signal = np.sum(trap1)
         sum_throughput = np.sum(trap2)

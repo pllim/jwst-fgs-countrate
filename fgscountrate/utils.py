@@ -85,13 +85,12 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
 
     """
 
-    # Query GSC
+    # Set file format and default catalog
     file_format = 'CSV'
-
     if catalog is None:
-        catalog = 'GSC241'  # set a default catalog
+        catalog = 'GSC241'
 
-    # Check only 1 coordinate specification is being used AND the coordinate specification choosen is complete
+    # Check only 1 coordinate specification is being used AND the coordinate specification chosen is complete
     method_list = [any([gs_id]), any([ra, dec, cone_radius]), any([minra, maxra, mindec, maxdec])]
     complete_list = [all([gs_id]), all([ra, dec]) or all([ra, dec, cone_radius]), all([minra, maxra, mindec, maxdec])]
     if method_list.count(True) != 1:
