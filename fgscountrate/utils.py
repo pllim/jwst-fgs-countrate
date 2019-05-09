@@ -19,14 +19,14 @@ def convert_to_abmag(value, name):
         GSC: JpgMag, FpgMag, IpgMag
 
     """
-    # TODO Fill in SDSS
+
     mag_constants = {
         'tmassJmag': 0.90,
         'tmassHmag': 1.37,
         'tmassKsMag': 1.85,
-        'SDSSgMag': 999,
-        'SDSSiMag': 999,
-        'SDSSzMag': 999,
+        'SDSSgMag': 0.0,
+        'SDSSiMag': 0.0,
+        'SDSSzMag': 0.0,
         'JpgMag': -0.055,
         'FpgMag': 0.24,
         'NpgMag': 0.48,

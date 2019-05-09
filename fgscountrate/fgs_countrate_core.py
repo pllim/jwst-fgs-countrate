@@ -3,13 +3,16 @@
 FGS Countrate Core
 ==================
 
-A module to find the expected FGS countrate for any JWST guide star
+A module to find the expected FGS countrate and magnitude for any JWST guide star.
+Done through
+    Querying the Guide Star Catalog
+    Converting GSC band data to J, H, and K magnitudes
+    Calculating the FGS countrate and FGS magnitude
 
 Code by Shannon Osborne. Contact at sosborne@stsci.edu
 """
 
 from collections import OrderedDict
-import operator
 
 import numpy as np
 import pandas as pd
@@ -17,39 +20,54 @@ import pandas as pd
 from . import conversions
 from . import utils
 
+# Constants
 PLANCK = 6.625e-27
 
-# FGS-Guider + OTE throughput. # TODO Fill in SDSS
+# GSC Band Information
+GSC_BAND_NAMES = ['tmassJmag', 'tmassHmag', 'tmassKsMag', 'SDSSgMag', 'SDSSiMag',
+                  'SDSSzMag', 'JpgMag', 'FpgMag', 'NpgMag']
+GSC_BAND_WAVELENGTH = [1.25, 1.65, 2.17, 0.468, 0.748, 0.8932, 0.466, 0.645, 0.85]
+
+# FGS-Guider + OTE throughput.
 THROUGHPUT_G1 = {
-    0.466: 0.0,
-    0.468: 999,
-    0.645: 0.23,
-    0.748: 999,
-    0.85: 0.45,
-    0.8932: 999,
-    1.25: 0.56,
-    1.65: 0.64,
-    2.17: 0.78,
-    3.0: 0.70,
-    4.0: 0.75,
-    5.0: 0.71,
-    5.5: 0.0,
+    0.466: 0.042,
+    0.468: 0.044,
+    0.645: 0.487,
+    0.748: 0.586,
+    0.850: 0.655,
+    0.8932: 0.707,
+    1.25: 0.688,
+    1.65: 0.633,
+    2.17: 0.723,
+    3.0: 0.744,
+    4.0: 0.690,
+    5.0: 0.548,
+    5.5: 0.041,
 }
 THROUGHPUT_G2 = {
-    0.466: 0.0,
-    0.468: 999,
-    0.645: 0.35,
-    0.748: 999,
-    0.85: 0.64,
-    0.8932: 999,
-    1.25: 0.74,
-    1.65: 0.60,
-    2.17: 0.63,
-    3.0: 0.43,
-    4.0: 0.73,
-    5.0: 0.68,
-    5.5: 0.04,
+    0.466: 0.020,
+    0.468: 0.021,
+    0.645: 0.390,
+    0.748: 0.628,
+    0.850: 0.669,
+    0.8932: 0.647,
+    1.25: 0.761,
+    1.65: 0.603,
+    2.17: 0.635,
+    3.0: 0.735,
+    4.0: 0.738,
+    5.0: 0.687,
+    5.5: 0.040,
 }
+
+# Countrate conversion factors
+CR_CONVERSION_G1 = 1.74
+CR_CONVERSION_G2 = 1.57
+
+# MAgnitude conversion constant
+MAG_CONVERSION_G1 = 999
+MAG_CONVERSION_G2 = 27.98
+
 
 class FGS_Countrate():
     """
@@ -137,10 +155,7 @@ class FGS_Countrate():
         """
 
         # Pull all the magnitudes from the series
-        l = ['JpgMag', 'FpgMag', 'NpgMag', 'tmassJmag', 'tmassHmag',
-             'tmassKsMag', 'SDSSgMag', 'SDSSiMag', 'SDSSzMag']
-
-        self._all_mag_series = data.loc[l]
+        self._all_mag_series = data.loc[GSC_BAND_NAMES]
 
         # List of the magnitude names that are not fill values in the series
         self._present_mags = list(self._all_mag_series[self._all_mag_series != -999].index)
@@ -190,10 +205,7 @@ class FGS_Countrate():
         """
 
         # Create initial dataframe
-        name = ['tmassJmag', 'tmassHmag', 'tmassKsMag', 'SDSSgMag', 'SDSSiMag',
-                'SDSSzMag', 'JpgMag', 'FpgMag', 'NpgMag']
-        wave = [1.25, 1.65, 2.17, 0.468, 0.748, 0.8932, 0.466, 0.645, 0.85]
-        df = pd.DataFrame(wave, columns=['Wavelength'], index=name)
+        df = pd.DataFrame(GSC_BAND_WAVELENGTH, columns=['Wavelength'], index=GSC_BAND_NAMES)
 
         # Add magnitudes
         df = pd.concat([df, self._all_mag_series], axis=1, sort=True)
@@ -214,7 +226,7 @@ class FGS_Countrate():
         # Convert AB mag to flux (photons/s/m**2/micron)
         def calc_flux(row):
             if row['ABMag'] != -999:
-                return 10.0 ** (-(row['ABMag'] + 48.6) / 2.5) * (1.0e4 / (PLANCK * row['Wavelength']))  # TODO confirm EQN
+                return 10.0 ** (-(row['ABMag'] + 48.6) / 2.5) * (1.0e4 / (PLANCK * row['Wavelength']))
             else:
                 return -999
 
@@ -250,21 +262,21 @@ class FGS_Countrate():
 
         if self.guider == 1:
             df['Throughput'] = df['Wavelength'].map(THROUGHPUT_G1)
-            cr_conversion = 999  # TODO NEED THIS VALUE FOR GUIDER 1
+            cr_conversion = CR_CONVERSION_G1
         elif self.guider == 2:
             df['Throughput'] = df['Wavelength'].map(THROUGHPUT_G2)
-            cr_conversion = 1.55
+            cr_conversion = CR_CONVERSION_G2
         else:
             raise ValueError("Guider value must be an integer either 1 or 2")
 
         # Compute number of photons reaching the FGS-Guider detector per second per micron.
         def calc_signal(row):
-            return row['Flux'] * np.array(row['Throughput']) * 25
+            return row['Flux'] * row['Throughput'] * 25
 
         df['Signal'] = df.apply(lambda row: calc_signal(row), axis=1)
 
         # Integrate flux in photons per second per micron over the FGS-Guider wavelength range. Use trapezoid formula.
-        trapezoid = np.zeros(9)
+        trapezoid = np.zeros(len(df)-1)
         for i in range(len(trapezoid)):
             trapezoid[i] = (df.at[df.index[i + 1], "Wavelength"] - df.at[df.index[i], "Wavelength"]) \
                            * (df.at[df.index[i], "Signal"] + df.at[df.index[i + 1], "Signal"]) / 2.0
@@ -290,7 +302,7 @@ class FGS_Countrate():
         self.compute_fgs_countrate()
         df = self.fgs_countrate_data
 
-        # Computation of the FGS magnitude  # TODO: It just ignores the last value?
+        # Computation of the FGS magnitude
         length = len(df) - 1
         trap1 = np.zeros(length)
         trap2 = np.zeros(length)
@@ -303,8 +315,14 @@ class FGS_Countrate():
         sum_signal = np.sum(trap1)
         sum_throughput = np.sum(trap2)
 
-        self.fgs_magnitude = -2.5 * np.log10(
-            sum_signal / sum_throughput) + 27.98  # TODO: Check this is also true for Guider 1
+        if self.guider == 1:
+            mag_conversion = MAG_CONVERSION_G1
+        elif self.guider == 2:
+            mag_conversion = MAG_CONVERSION_G2
+        else:
+            raise ValueError("Guider value must be an integer either 1 or 2")
+
+        self.fgs_magnitude = -2.5 * np.log10(sum_signal / sum_throughput) + mag_conversion
 
         return self.fgs_magnitude
 
