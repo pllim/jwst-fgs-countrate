@@ -9,10 +9,14 @@ from fgscountrate import conversions
 
 # Create data
 # Aiming to match output from: fgs = FGS_Countrate(guide_star_id="N13I000018"); data = fgs.query_gsc()
-values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965, 14.9447, 14.0877,
-          13.7468, 13.339, 12.993, 12.901, 14.6547, 14.1443, 14.1067]
-index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr', 'JpgMag', 'FpgMag', 'NpgMag',
-         'tmassJmag', 'tmassHmag', 'tmassKsMag', 'SDSSgMag', 'SDSSiMag', 'SDSSzMag']
+values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965,
+          14.9447, 0.285722, 14.0877, 0.2927929, 13.7468, 0.239294,
+          13.339, 0.0250000003, 12.993, 0.0270000007, 12.901, 0.0270000007, 
+          14.6547, 0.003211281, 14.1443, 0.003414216, 14.1067, 0.00433389]
+index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
+         'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
+         'tmassJmag', 'tmassJmagErr', 'tmassHmag', 'tmassHmagErr', 'tmassKsMag', 'tmassKsMagErr',
+         'SDSSgMag', 'SDSSgMagErr', 'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
 
 BASE_DATA = pd.Series(values, index=index)
 
@@ -111,9 +115,9 @@ def test_tmass_to_jhk():
     fgs.data['tmassKsMag'] = input_k
 
     # Run method
-    j = conversions.convert_tmass_to_jhk(data=fgs.data, output_mag='J')
-    h = conversions.convert_tmass_to_jhk(data=fgs.data, output_mag='H')
-    k = conversions.convert_tmass_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_tmass_to_jhk(data=fgs.data, output_mag='J')
+    h, h_err = conversions.convert_tmass_to_jhk(data=fgs.data, output_mag='H')
+    k, k_err = conversions.convert_tmass_to_jhk(data=fgs.data, output_mag='K')
 
     # Check output - there should be no change
     assert j == input_j
@@ -135,9 +139,9 @@ def test_sdssgz_to_jhk():
     fgs.data['SDSSzMag'] = input_z
 
     # Run method
-    j = conversions.convert_sdssgz_to_jhk(data=fgs.data, output_mag='J')
-    h = conversions.convert_sdssgz_to_jhk(data=fgs.data, output_mag='H')
-    k = conversions.convert_sdssgz_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_sdssgz_to_jhk(data=fgs.data, output_mag='J')
+    h, h_err = conversions.convert_sdssgz_to_jhk(data=fgs.data, output_mag='H')
+    k, k_err = conversions.convert_sdssgz_to_jhk(data=fgs.data, output_mag='K')
 
     # Do calculation
     val = input_g - input_z
@@ -165,9 +169,9 @@ def test_sdssgi_to_jhk():
     fgs.data['SDSSiMag'] = input_i
 
     # Run method
-    j = conversions.convert_sdssgi_to_jhk(data=fgs.data, output_mag='J')
-    h = conversions.convert_sdssgi_to_jhk(data=fgs.data, output_mag='H')
-    k = conversions.convert_sdssgi_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_sdssgi_to_jhk(data=fgs.data, output_mag='J')
+    h, h_err = conversions.convert_sdssgi_to_jhk(data=fgs.data, output_mag='H')
+    k, k_err = conversions.convert_sdssgi_to_jhk(data=fgs.data, output_mag='K')
 
     # Do calculation
     val = input_g - input_i
@@ -195,9 +199,9 @@ def test_sdssiz_to_jhk():
     fgs.data['SDSSzMag'] = input_z
 
     # Run method
-    j = conversions.convert_sdssiz_to_jhk(data=fgs.data, output_mag='J')
-    h = conversions.convert_sdssiz_to_jhk(data=fgs.data, output_mag='H')
-    k = conversions.convert_sdssiz_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_sdssiz_to_jhk(data=fgs.data, output_mag='J')
+    h, h_err = conversions.convert_sdssiz_to_jhk(data=fgs.data, output_mag='H')
+    k, k_err = conversions.convert_sdssiz_to_jhk(data=fgs.data, output_mag='K')
 
     # Do calculation
     val = input_i - input_z
@@ -225,9 +229,9 @@ def test_gsc2bjin_to_jhk():
     fgs.data['NpgMag'] = input_in
 
     # Run method
-    j = conversions.convert_gsc2bjin_to_jhk(data=fgs.data, output_mag='J')
-    h = conversions.convert_gsc2bjin_to_jhk(data=fgs.data, output_mag='H')
-    k = conversions.convert_gsc2bjin_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.data, output_mag='J')
+    h, h_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.data, output_mag='H')
+    k, k_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.data, output_mag='K')
 
     # Do calculation
     val = input_bj - input_in
@@ -255,9 +259,9 @@ def test_gsc2rfin_to_jhk():
     fgs.data['NpgMag'] = input_in
 
     # Run method
-    j = conversions.convert_gsc2rfin_to_jhk(data=fgs.data, output_mag='J')
-    h = conversions.convert_gsc2rfin_to_jhk(data=fgs.data, output_mag='H')
-    k = conversions.convert_gsc2rfin_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.data, output_mag='J')
+    h, h_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.data, output_mag='H')
+    k, k_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.data, output_mag='K')
 
     # Do calculation
     val = input_rf - input_in
@@ -285,9 +289,9 @@ def test_gsc2bjrf_to_jhk():
     fgs.data['FpgMag'] = input_rf
 
     # Run method
-    j = conversions.convert_gsc2bjrf_to_jhk(data=fgs.data, output_mag='J')
-    h = conversions.convert_gsc2bjrf_to_jhk(data=fgs.data, output_mag='H')
-    k = conversions.convert_gsc2bjrf_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.data, output_mag='J')
+    h, h_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.data, output_mag='H')
+    k, k_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.data, output_mag='K')
 
     # Do calculation
     val = input_bj - input_rf
