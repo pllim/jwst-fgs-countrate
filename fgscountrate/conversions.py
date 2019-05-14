@@ -16,7 +16,7 @@ def convert_tmass_to_jhk(data, output_mag):
     Note: No conversion is really needed here since the 2MASS
     input is already in J,H,K band. This function is really
     more of a place holder to be used in the the method
-    FGSCountrate.convert_mag_to_jhk().
+    FGSCountrate.calc_jhk_mag().
 
     Parameters
     ----------

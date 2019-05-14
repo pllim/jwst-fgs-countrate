@@ -13,6 +13,7 @@ Code by Shannon Osborne. Contact at sosborne@stsci.edu
 """
 
 from collections import OrderedDict
+import copy
 
 import numpy as np
 import pandas as pd
@@ -24,17 +25,22 @@ from . import utils
 PLANCK = 6.625e-27
 
 # GSC Band Information
-GSC_BAND_NAMES = ['tmassJmag', 'tmassHmag', 'tmassKsMag', 'SDSSgMag', 'SDSSiMag',
+GSC_BAND_NAMES = ['tmassJmag', 'tmassHmag', 'tmassKsMag',
+                  'SDSSuMag', 'SDSSgMag', 'SDSSrMag', 'SDSSiMag',
                   'SDSSzMag', 'JpgMag', 'FpgMag', 'NpgMag']
-GSC_BAND_WAVELENGTH = [1.25, 1.65, 2.17, 0.468, 0.748, 0.8932, 0.466, 0.645, 0.85]
+GSC_BAND_WAVELENGTH = [1.25, 1.65, 2.17,
+                       0.3551, 0.4680, 0.6166, 0.7480,
+                       0.8932, 0.4660, 0.6450, 0.8500]
 
-# FGS-Guider + OTE throughput.
+# FGS-Guider + OTE throughput
 THROUGHPUT_G1 = {
-    0.466: 0.042,
-    0.468: 0.044,
-    0.645: 0.487,
-    0.748: 0.586,
-    0.850: 0.655,
+    0.3551: 0.0,
+    0.4660: 0.042,
+    0.4680: 0.044,
+    0.6166: 0.389,
+    0.6450: 0.487,
+    0.7480: 0.586,
+    0.8500: 0.655,
     0.8932: 0.707,
     1.25: 0.688,
     1.65: 0.633,
@@ -45,11 +51,13 @@ THROUGHPUT_G1 = {
     5.5: 0.041,
 }
 THROUGHPUT_G2 = {
-    0.466: 0.020,
-    0.468: 0.021,
-    0.645: 0.390,
-    0.748: 0.628,
-    0.850: 0.669,
+    0.3551: 0.0,
+    0.4660: 0.020,
+    0.4680: 0.021,
+    0.6166: 0.289,
+    0.6450: 0.390,
+    0.7480: 0.628,
+    0.8500: 0.669,
     0.8932: 0.647,
     1.25: 0.761,
     1.65: 0.603,
@@ -69,11 +77,11 @@ MAG_CONVERSION_G1 = -24.7934
 MAG_CONVERSION_G2 = -24.7011
 
 
-class FGS_Countrate:
+class FGSCountrate:
     """
-    Class to support conversion from inputting a guide star ID and
-    returning the expected FGS count rate. The main method in this
-    class is get_fgs_countrate() which does that conversion.
+    Class to support the conversion from an input guide star ID and
+    guider number to the expected FGS count rate, FGS magnitude,
+    and their uncertainties.
 
     Parameters
     ----------
@@ -84,13 +92,18 @@ class FGS_Countrate:
     guider : int
         The guider number, either 1 or 2
 
+    Example
+    -------
+    fgs = FGSCountrate(guide_star_id='N13I000018', guider=1)
+    cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
+
     """
 
     def __init__(self, guide_star_id, guider):
         # Star information
         self.id = guide_star_id
         self.guider = guider
-        self.data = None
+        self.gsc_series = None
 
         # Band information
         self._all_mag_series = None
@@ -104,17 +117,19 @@ class FGS_Countrate:
 
         self.fgs_countrate, self.fgs_countrate_err = None, None
         self.fgs_magnitude, self.fgs_magnitude_err = None, None
-        self.fgs_countrate_data = None  # TODO figure out where to define this
+        self.band_dataframe = None
 
-    def get_fgs_countrate_magnitude(self):
+    def query_fgs_countrate_magnitude(self):
         """
-        Calculate the FGS countrate and magnitude values for a guide star based on it's
-        ID number. This calculation using the following steps
-            1) Query the newest guide star catalog with the guide star ID
-            2) Use the magnitudes present for that guide star to calculate
-                the J, H, and K magnitudes
-            3) Use the J, H, and K magnitudes along with the guider number
-                to calculate the FGS countrate and magnitude
+        Calculate the FGS countrate and magnitude values for a guide star
+        based on it's ID. This calculation uses the following steps:
+            1) Query the newest guide star catalog with the given
+                guide star ID
+            2) Use the magnitudes for the bands present for that
+                guide star to calculate the J, H, and K magnitudes
+                if they are not already present
+            3) Use all the present bands and the guider number to
+                calculate the FGS countrate and magnitude
 
         Returns
         -------
@@ -130,35 +145,34 @@ class FGS_Countrate:
             Error of the FGS magnitude
         """
 
-        # Query GSC to get data
+        # Query GSC to get data on the guide star
         data_frame = utils.query_gsc(gs_id=self.id, catalog='GSC241')
 
-        # Check length of data table and turn it from a data frame to a series
+        # Check length of data table and turn it from a dataframe to a series
         if len(data_frame) == 1:
-            self.data = data_frame.iloc[0]
+            self.gsc_series = data_frame.iloc[0]
         else:
             # TODO: May do more fixing here later
             raise ValueError("This Guide Star ID points to multiple lines in GSC2.4.1")
 
         # Convert to JHK magnitudes
         self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err = \
-            self.convert_mag_to_jhk(self.data)
+            self.calc_jhk_mag(self.gsc_series)
 
         # Compute FGS countrate and magnitude
         self.fgs_countrate, self.fgs_countrate_err, \
-        self.fgs_magnitude, self.fgs_magnitude_err = self.compute_fgs_data()
+            self.fgs_magnitude, self.fgs_magnitude_err = self.calc_fgs_cr_mag_and_err()
 
         return self.fgs_countrate, self.fgs_countrate_err, self.fgs_magnitude, self.fgs_magnitude_err
 
-    def convert_mag_to_jhk(self, data):
+    def calc_jhk_mag(self, data):
         """
-        Calculate the J, H, and K magnitudes of thee input data
+        Calculate the J, H, and K magnitudes of the input data
 
         Parameters
         ----------
         data : pandas series
-            A pd series containing at least the following stellar
-            magnitude data:
+            A pd series containing at least the following bands:
             GSC2: JpgMag, FpgMag, NpgMag
             2MASS: tmassJmag, tmassHmag, tmassKsMag
             SDSS: SDSSgMag, SDSSiMag, SDSSzMag
@@ -175,9 +189,7 @@ class FGS_Countrate:
         self._all_mag_series = data.loc[GSC_BAND_NAMES]
 
         # Pull magnitude errors for each band
-        mag_err_list = []
-        for ind in self._all_mag_series.index:
-            mag_err_list.append(self.data[ind + 'Err'])
+        mag_err_list = [self.gsc_series[ind + 'Err'] for ind in self._all_mag_series.index]
         self._all_mag_err_series = pd.Series(mag_err_list, index=self._all_mag_series.index)
 
         # List of the magnitude names that are not fill values in the series
@@ -210,19 +222,58 @@ class FGS_Countrate:
             method = getattr(conversions, getattr(self, '{}_convert_method'.format(i[5].lower())), lambda: "Invalid")
             method_list.append(method)
 
-        self.j_mag, self.j_mag_err = method_list[0](data=self.data, output_mag='J')
-        self.h_mag, self.h_mag_err = method_list[1](data=self.data, output_mag='H')
-        self.k_mag, self.k_mag_err = method_list[2](data=self.data, output_mag='K')
+        self.j_mag, self.j_mag_err = method_list[0](data=self.gsc_series, output_mag='J')
+        self.h_mag, self.h_mag_err = method_list[1](data=self.gsc_series, output_mag='H')
+        self.k_mag, self.k_mag_err = method_list[2](data=self.gsc_series, output_mag='K')
 
         return self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err
 
-    def _compute_band_data(self, to_compute, band_data, guider_throughput, guider_gain):
+    def _calc_fgs_cr_mag(self, to_compute, band_series, guider_throughput, guider_gain, return_dataframe=False):
+        """
+        Calculate the FGS countrate and/or magnitude based on
+        measured guide star data.
+
+        Parameters
+        ----------
+        to_compute : str
+            What FGS value you want to compute and return.
+            Options are 'countrate', 'magnitude', or 'both'.
+        band_series : Pandas Series
+            A Pandas series where the index contains ['tmassJmag',
+            'tmassHmag', 'tmassKsMag', 'SDSSgMag', 'SDSSiMag',
+            'SDSSzMag', 'JpgMag', 'FpgMag', 'NpgMag'] and the
+            values are the magnitude for each of these bands.
+        guider_throughput : dict
+            A dictionary of the guider (as set in self.guider)
+            throughput taken at the central wavelength for each
+            of the different bands
+        guider_gain : float
+            The gain for the guider (as set in self.guider) in
+            electrons per 1 count
+        return_dataframe : bool
+            True or False for if you would like to return a
+            dataframe which contains all the calculated
+            values for each of the bands including Wavelength,
+            Mag, ABMag, Flux, Throughput, and Signal.
+
+        Returns
+        -------
+        to_return : list
+            A list of the different values based on how the "to_compute"
+            and "return_dataframe" parameters are set. The possible values
+            in this list are (in order):
+                FGS countrate
+                FGS magnitude
+                Dataframe containing the band information
+
+        """
+        to_return = []
 
         # Create initial dataframe
         df = pd.DataFrame(GSC_BAND_WAVELENGTH, columns=['Wavelength'], index=GSC_BAND_NAMES)
 
         # Add magnitudes
-        df = pd.concat([df, band_data], axis=1, sort=True)
+        df = pd.concat([df, band_series], axis=1, sort=True)
         df = df.rename(columns={0: 'Mag'})
 
         # Sort to order of increasing wavelength
@@ -256,9 +307,8 @@ class FGS_Countrate:
                            index=['Extend1', 'Extend2', 'Extend3', 'Extend4'])
         df = pd.concat([df, df2], axis=0)
 
-        # Set values based on guider
+        # Add throughput data to dataframe
         df['Throughput'] = df['Wavelength'].map(guider_throughput)
-        cr_conversion = guider_gain
 
         # Compute number of photons reaching the FGS-Guider detector per second per micron.
         def calc_signal(row):
@@ -269,9 +319,10 @@ class FGS_Countrate:
 
         df['Signal'] = df.apply(lambda row: calc_signal(row), axis=1)
 
-        # Can't compute if we only have J, H, and K  # TODO will be changed
-        if set(['tmassJmag', 'tmassHmag', 'tmassKsMag']) == set(self._present_mags):
-            raise ValueError('Cannot compute FGS countrate for a guide star ({}) with only 2MASS data'.format(self.id))
+        # Can't compute if we only have J, H, and K  # TODO will be changed later
+        if {'tmassJmag', 'tmassHmag', 'tmassKsMag'} == set(self._present_mags):
+            raise ValueError('Cannot compute FGS countrate & magnitude for a guide star ({}) with only 2MASS '
+                             'data'.format(self.id))
 
         # Reset the shortest/2nd shortest bands to 0 if they are missing
         if df.at['JpgMag', 'Signal'] == -999:
@@ -279,10 +330,7 @@ class FGS_Countrate:
         if df.at['SDSSgMag', 'Signal'] == -999:
             df.at['SDSSgMag', 'Signal'] = 0
 
-        # # Compute FGS-Guider count rate using conversion of # electrons => 1 count
-        # self.fgs_countrate_data = df
-
-        # Throw out any data you don't have
+        # Throw out any bands for which you don't have data
         df_short = df[df['Signal'] != -999]
 
         # Integrate flux in photons per second per micron over the FGS-Guider wavelength range. Use trapezoid formula.
@@ -294,12 +342,13 @@ class FGS_Countrate:
                             df_short.at[df_short.index[i + 1], "Signal"]) / 2.0
         electrons = np.sum(trapezoid)
 
-        fgs_countrate = electrons / cr_conversion
+        # Compute FGS countrate using conversion of # electrons => 1 count
+        fgs_countrate = electrons / guider_gain
 
-        if to_compute == 'countrate':
-            return fgs_countrate
+        if to_compute.lower() == 'countrate' or to_compute.lower() == 'both':
+            to_return.append(fgs_countrate)
 
-        # Computation of the FGS magnitude
+        # Compute FGS magnitude
         length = len(df_short) - 1
         trap1 = np.zeros(length)
         trap2 = np.zeros(length)
@@ -325,15 +374,18 @@ class FGS_Countrate:
 
         fgs_magnitude = -2.5 * np.log10(sum_signal / sum_throughput) + mag_conversion
 
-        if to_compute == 'magnitude':
-            return fgs_magnitude
-        elif to_compute == 'both':
-            return fgs_countrate, fgs_magnitude
+        if to_compute.lower() == 'magnitude' or to_compute.lower() == 'both':
+            to_return.append(fgs_magnitude)
 
-    def compute_fgs_data(self):
+        if return_dataframe is True:
+            to_return.append(df)
+
+        return to_return
+
+    def calc_fgs_cr_mag_and_err(self):
         """
-        Compute the FGS countrate and magnitude (and their respective errors)
-        using all available values from the GSC
+        Compute the FGS countrate and magnitude and their respective errors
+        using all available bands from the GSC
 
         Returns
         ------
@@ -347,7 +399,7 @@ class FGS_Countrate:
             and the guider number
         fgs_magnitude_err : float
             Error of the FGS magnitude
-            """
+        """
 
         # Set values based on guider
         if self.guider == 1:
@@ -360,43 +412,43 @@ class FGS_Countrate:
             raise ValueError("Guider value must be an integer either 1 or 2")
 
         # Calculate magnitude/countrate
-        self.fgs_countrate, self.fgs_magnitude = self._compute_band_data(to_compute='both',
-                                                                         band_data=self._all_mag_series,
-                                                                         guider_throughput=throughput_dict,
-                                                                         guider_gain=cr_conversion)
+        self.fgs_countrate, self.fgs_magnitude, self.band_dataframe = \
+            self._calc_fgs_cr_mag(to_compute='both', band_series=self._all_mag_series,
+                                  guider_throughput=throughput_dict, guider_gain=cr_conversion,
+                                  return_dataframe=True)
 
-        # Calculate uncertainty
+        # Band Magnitude Error
         cr_err_list = []
         mag_err_list = []
         for band in self._present_mags:
-            band_data_with_err = self._all_mag_series
+            band_data_with_err = copy.deepcopy(self._all_mag_series)
             band_data_with_err[band] += self._all_mag_err_series[band]
-            cr_band_err, mag_band_err = self._compute_band_data(to_compute='both',
-                                                                band_data=band_data_with_err,
-                                                                guider_throughput=throughput_dict,
-                                                                guider_gain=cr_conversion)
+            cr_band_err, mag_band_err = self._calc_fgs_cr_mag(to_compute='both',
+                                                              band_series=band_data_with_err,
+                                                              guider_throughput=throughput_dict,
+                                                              guider_gain=cr_conversion)
             cr_err_list.append(cr_band_err - self.fgs_countrate)
             mag_err_list.append(mag_band_err - self.fgs_magnitude)
 
         # Throughput Error - 5%
         new_throughput = {key: val * 1.05 for key, val in throughput_dict.items()}
-        cr_tput_err, mag_tput_err = self._compute_band_data(to_compute='both',
-                                                            band_data=self._all_mag_series,
-                                                            guider_throughput=new_throughput,
-                                                            guider_gain=cr_conversion)
+        cr_tput_err, mag_tput_err = self._calc_fgs_cr_mag(to_compute='both',
+                                                          band_series=self._all_mag_series,
+                                                          guider_throughput=new_throughput,
+                                                          guider_gain=cr_conversion)
         cr_err_list.append(cr_tput_err - self.fgs_countrate)
         mag_err_list.append(mag_tput_err - self.fgs_magnitude)
 
         # Gain Error - 5%
         new_gain = cr_conversion * 1.05
-        cr_gain_err, mag_gain_err = self._compute_band_data(to_compute='both',
-                                                            band_data=self._all_mag_series,
-                                                            guider_throughput=throughput_dict,
-                                                            guider_gain=new_gain)
+        cr_gain_err, mag_gain_err = self._calc_fgs_cr_mag(to_compute='both',
+                                                          band_series=self._all_mag_series,
+                                                          guider_throughput=throughput_dict,
+                                                          guider_gain=new_gain)
         cr_err_list.append(cr_gain_err - self.fgs_countrate)
         mag_err_list.append(mag_gain_err - self.fgs_magnitude)
 
-        # Integral Error - 5% # TODO - figure out what value to use
+        # Integral Error - 5% # TODO - figure out what value to take 5% of
         cr_integral_err = self.fgs_countrate * 1.05
         mag_integral_err = self.fgs_magnitude * 1.05
         cr_err_list.append(cr_integral_err - self.fgs_countrate)

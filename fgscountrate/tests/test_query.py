@@ -1,13 +1,13 @@
 import pytest
 
-from fgscountrate.fgs_countrate_core import FGS_Countrate
+from fgscountrate.fgs_countrate_core import FGSCountrate
 from fgscountrate import utils
 
 
 def test_successful_query():
     """Test a query that should be successful"""
     id = 'N13I000018'
-    fgs = FGS_Countrate(guide_star_id=id, guider=1)
+    fgs = FGSCountrate(guide_star_id=id, guider=1)
     dataframe = utils.query_gsc(gs_id=fgs.id, catalog='GSC241')
 
     assert len(dataframe) == 1
@@ -32,7 +32,7 @@ def test_fake_id():
 def test_multiple_line_output():
     """Check that an error occurs when an ID corresponds to multiple lines in the GSC"""
     id = 'TBD'
-    fgs = FGS_Countrate(guide_star_id=id, guider=2)
+    fgs = FGSCountrate(guide_star_id=id, guider=2)
 
     with pytest.raises(ValueError) as excinfo:
         fgs.get_fgs_countrate()

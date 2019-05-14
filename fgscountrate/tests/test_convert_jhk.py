@@ -3,20 +3,22 @@ import itertools
 
 import pandas as pd
 
-from fgscountrate.fgs_countrate_core import FGS_Countrate
+from fgscountrate.fgs_countrate_core import FGSCountrate
 from fgscountrate import conversions
 
 
 # Create data
-# Aiming to match output from: fgs = FGS_Countrate(guide_star_id="N13I000018"); data = fgs.query_gsc()
+# Aiming to match output from: fgs = FGSCountrate(guide_star_id="N13I000018"); data = fgs.query_gsc()
 values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965,
           14.9447, 0.285722, 14.0877, 0.2927929, 13.7468, 0.239294,
-          13.339, 0.0250000003, 12.993, 0.0270000007, 12.901, 0.0270000007, 
-          14.6547, 0.003211281, 14.1443, 0.003414216, 14.1067, 0.00433389]
+          13.339, 0.0250000003, 12.993, 0.0270000007, 12.901, 0.0270000007,
+          15.78594, 0.005142, 14.6547, 0.003211281, 14.27808, 0.003273380,
+          14.1443, 0.003414216, 14.1067, 0.00433389]
 index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
          'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
          'tmassJmag', 'tmassJmagErr', 'tmassHmag', 'tmassHmagErr', 'tmassKsMag', 'tmassKsMagErr',
-         'SDSSgMag', 'SDSSgMagErr', 'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
+         'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
+         'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
 
 BASE_DATA = pd.Series(values, index=index)
 
@@ -24,7 +26,7 @@ BASE_DATA = pd.Series(values, index=index)
 def test_convert_mag_to_jhk():
     """
     Using a different technique for choosing the conversion method and
-    comparing that output to the technique used in convert_mag_to_jhk.
+    comparing that output to the technique used in calc_jhk_mag.
     This test is done by finding all possible combinations of the
     magnitudes that could be used for the conversion and checking
     that they have the same output with both techniques.
@@ -32,7 +34,8 @@ def test_convert_mag_to_jhk():
     """
 
     full_list = ['JpgMag', 'FpgMag', 'NpgMag', 'tmassJmag', 'tmassHmag',
-                 'tmassKsMag', 'SDSSgMag', 'SDSSiMag', 'SDSSzMag']
+                 'tmassKsMag', 'SDSSuMag', 'SDSSgMag', 'SDSSrMag',
+                 'SDSSiMag', 'SDSSzMag']
 
     for L in range(0, len(full_list) + 1):
         for subset in itertools.combinations(full_list, L):
@@ -40,16 +43,16 @@ def test_convert_mag_to_jhk():
                 continue
 
             # Recreate data
-            fgs = FGS_Countrate(guide_star_id="N13I000018", guider=1)
-            fgs.data = BASE_DATA
+            fgs = FGSCountrate(guide_star_id="N13I000018", guider=1)
+            fgs.gsc_series = BASE_DATA
 
             # Compute conversion
             delete_list = list(set(full_list) - set(subset))
-            data2 = copy.copy(fgs.data)
+            data2 = copy.copy(fgs.gsc_series)
             for i in delete_list:
                 data2[i] = -999
             try:
-                fgs.convert_mag_to_jhk(data=data2)
+                fgs.calc_jhk_mag(data=data2)
                 error = False
             except ValueError:
                 error = True
@@ -86,7 +89,7 @@ def test_convert_mag_to_jhk():
 
                 # If you could compute the JHK mags, check the same conversion method as used
                 if error is False:
-                    failure_message = 'For input {} and band {}: the test called {} while the convert_mag_to_jhk ' \
+                    failure_message = 'For input {} and band {}: the test called {} while the calc_jhk_mag ' \
                                       'method called {}'.format(list(subset), i[5], method_name_test,
                                                                 getattr(fgs, '{}_convert_method'.format(i[5].lower())))
 
@@ -103,21 +106,21 @@ def test_tmass_to_jhk():
     which is no change to the input values
     """
     # Create instance and get data
-    fgs = FGS_Countrate(guide_star_id="N13I000018", guider=2)
-    fgs.data = BASE_DATA
+    fgs = FGSCountrate(guide_star_id="N13I000018", guider=2)
+    fgs.gsc_series = BASE_DATA
 
     # Change data
     input_j = 10
     input_h = 11
     input_k = 12
-    fgs.data['tmassJmag'] = input_j
-    fgs.data['tmassHmag'] = input_h
-    fgs.data['tmassKsMag'] = input_k
+    fgs.gsc_series['tmassJmag'] = input_j
+    fgs.gsc_series['tmassHmag'] = input_h
+    fgs.gsc_series['tmassKsMag'] = input_k
 
     # Run method
-    j, j_err = conversions.convert_tmass_to_jhk(data=fgs.data, output_mag='J')
-    h, h_err = conversions.convert_tmass_to_jhk(data=fgs.data, output_mag='H')
-    k, k_err = conversions.convert_tmass_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_tmass_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h, h_err = conversions.convert_tmass_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k, k_err = conversions.convert_tmass_to_jhk(data=fgs.gsc_series, output_mag='K')
 
     # Check output - there should be no change
     assert j == input_j
@@ -129,19 +132,19 @@ def test_sdssgz_to_jhk():
     """Check the _sdssgz_to_jhk method produces the expected result """
 
     # Create instance and get data
-    fgs = FGS_Countrate(guide_star_id="N13I000018", guider=1)
-    fgs.data = BASE_DATA
+    fgs = FGSCountrate(guide_star_id="N13I000018", guider=1)
+    fgs.gsc_series = BASE_DATA
 
     # Change data
     input_g = 10
     input_z = 11
-    fgs.data['SDSSgMag'] = input_g
-    fgs.data['SDSSzMag'] = input_z
+    fgs.gsc_series['SDSSgMag'] = input_g
+    fgs.gsc_series['SDSSzMag'] = input_z
 
     # Run method
-    j, j_err = conversions.convert_sdssgz_to_jhk(data=fgs.data, output_mag='J')
-    h, h_err = conversions.convert_sdssgz_to_jhk(data=fgs.data, output_mag='H')
-    k, k_err = conversions.convert_sdssgz_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_sdssgz_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h, h_err = conversions.convert_sdssgz_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k, k_err = conversions.convert_sdssgz_to_jhk(data=fgs.gsc_series, output_mag='K')
 
     # Do calculation
     val = input_g - input_z
@@ -159,19 +162,19 @@ def test_sdssgi_to_jhk():
     """Check the _sdssgi_to_jhk method produces the expected result """
 
     # Create instance and get data
-    fgs = FGS_Countrate(guide_star_id="N13I000018", guider=2)
-    fgs.data = BASE_DATA
+    fgs = FGSCountrate(guide_star_id="N13I000018", guider=2)
+    fgs.gsc_series = BASE_DATA
 
     # Change data
     input_g = 10
     input_i = 11
-    fgs.data['SDSSgMag'] = input_g
-    fgs.data['SDSSiMag'] = input_i
+    fgs.gsc_series['SDSSgMag'] = input_g
+    fgs.gsc_series['SDSSiMag'] = input_i
 
     # Run method
-    j, j_err = conversions.convert_sdssgi_to_jhk(data=fgs.data, output_mag='J')
-    h, h_err = conversions.convert_sdssgi_to_jhk(data=fgs.data, output_mag='H')
-    k, k_err = conversions.convert_sdssgi_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_sdssgi_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h, h_err = conversions.convert_sdssgi_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k, k_err = conversions.convert_sdssgi_to_jhk(data=fgs.gsc_series, output_mag='K')
 
     # Do calculation
     val = input_g - input_i
@@ -189,19 +192,19 @@ def test_sdssiz_to_jhk():
     """Check the _sdssiz_to_jhk method produces the expected result """
 
     # Create instance and get data
-    fgs = FGS_Countrate(guide_star_id="N13I000018", guider=1)
-    fgs.data = BASE_DATA
+    fgs = FGSCountrate(guide_star_id="N13I000018", guider=1)
+    fgs.gsc_series = BASE_DATA
 
     # Change data
     input_i = 10
     input_z = 11
-    fgs.data['SDSSiMag'] = input_i
-    fgs.data['SDSSzMag'] = input_z
+    fgs.gsc_series['SDSSiMag'] = input_i
+    fgs.gsc_series['SDSSzMag'] = input_z
 
     # Run method
-    j, j_err = conversions.convert_sdssiz_to_jhk(data=fgs.data, output_mag='J')
-    h, h_err = conversions.convert_sdssiz_to_jhk(data=fgs.data, output_mag='H')
-    k, k_err = conversions.convert_sdssiz_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_sdssiz_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h, h_err = conversions.convert_sdssiz_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k, k_err = conversions.convert_sdssiz_to_jhk(data=fgs.gsc_series, output_mag='K')
 
     # Do calculation
     val = input_i - input_z
@@ -219,19 +222,19 @@ def test_gsc2bjin_to_jhk():
     """Check the _gsc2bjin_to_jhk method produces the expected result """
 
     # Create instance and get data
-    fgs = FGS_Countrate(guide_star_id="N13I000018", guider=2)
-    fgs.data = BASE_DATA
+    fgs = FGSCountrate(guide_star_id="N13I000018", guider=2)
+    fgs.gsc_series = BASE_DATA
 
     # Change data
     input_bj = 10
     input_in = 11
-    fgs.data['JpgMag'] = input_bj
-    fgs.data['NpgMag'] = input_in
+    fgs.gsc_series['JpgMag'] = input_bj
+    fgs.gsc_series['NpgMag'] = input_in
 
     # Run method
-    j, j_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.data, output_mag='J')
-    h, h_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.data, output_mag='H')
-    k, k_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h, h_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k, k_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.gsc_series, output_mag='K')
 
     # Do calculation
     val = input_bj - input_in
@@ -249,19 +252,19 @@ def test_gsc2rfin_to_jhk():
     """Check the _gsc2rfin_to_jhk method produces the expected result """
 
     # Create instance and get data
-    fgs = FGS_Countrate(guide_star_id="N13I000018", guider=1)
-    fgs.data = BASE_DATA
+    fgs = FGSCountrate(guide_star_id="N13I000018", guider=1)
+    fgs.gsc_series = BASE_DATA
 
     # Change data
     input_rf = 10
     input_in = 11
-    fgs.data['FpgMag'] = input_rf
-    fgs.data['NpgMag'] = input_in
+    fgs.gsc_series['FpgMag'] = input_rf
+    fgs.gsc_series['NpgMag'] = input_in
 
     # Run method
-    j, j_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.data, output_mag='J')
-    h, h_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.data, output_mag='H')
-    k, k_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h, h_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k, k_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.gsc_series, output_mag='K')
 
     # Do calculation
     val = input_rf - input_in
@@ -279,19 +282,19 @@ def test_gsc2bjrf_to_jhk():
     """Check the _gsc2bjrf_to_jhk method produces the expected result """
 
     # Create instance and get data
-    fgs = FGS_Countrate(guide_star_id="N13I000018", guider=2)
-    fgs.data = BASE_DATA
+    fgs = FGSCountrate(guide_star_id="N13I000018", guider=2)
+    fgs.gsc_series = BASE_DATA
 
     # Change data
     input_bj = 10
     input_rf = 11
-    fgs.data['JpgMag'] = input_bj
-    fgs.data['FpgMag'] = input_rf
+    fgs.gsc_series['JpgMag'] = input_bj
+    fgs.gsc_series['FpgMag'] = input_rf
 
     # Run method
-    j, j_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.data, output_mag='J')
-    h, h_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.data, output_mag='H')
-    k, k_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.data, output_mag='K')
+    j, j_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h, h_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k, k_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.gsc_series, output_mag='K')
 
     # Do calculation
     val = input_bj - input_rf
