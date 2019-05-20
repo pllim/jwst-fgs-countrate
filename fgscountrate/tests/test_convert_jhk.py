@@ -2,6 +2,7 @@ import copy
 import itertools
 
 import pandas as pd
+import pytest
 
 from fgscountrate.fgs_countrate_core import FGSCountrate
 from fgscountrate import conversions
@@ -113,19 +114,40 @@ def test_tmass_to_jhk():
     input_j = 10
     input_h = 11
     input_k = 12
+    input_j_err = 0.10
+    input_h_err = 0.11
+    input_k_err = 0.12
     fgs.gsc_series['tmassJmag'] = input_j
     fgs.gsc_series['tmassHmag'] = input_h
     fgs.gsc_series['tmassKsMag'] = input_k
+    fgs.gsc_series['tmassJmagErr'] = input_j_err
+    fgs.gsc_series['tmassHmagErr'] = input_h_err
+    fgs.gsc_series['tmassKsMagErr'] = input_k_err
 
-    # Run method
-    j, j_err = conversions.convert_tmass_to_jhk(data=fgs.gsc_series, output_mag='J')
-    h, h_err = conversions.convert_tmass_to_jhk(data=fgs.gsc_series, output_mag='H')
-    k, k_err = conversions.convert_tmass_to_jhk(data=fgs.gsc_series, output_mag='K')
+    # Run method with series input
+    j_ser, j_err_ser = conversions.convert_tmass_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h_ser, h_err_ser = conversions.convert_tmass_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k_ser, k_err_ser = conversions.convert_tmass_to_jhk(data=fgs.gsc_series, output_mag='K')
 
-    # Check output - there should be no change
-    assert j == input_j
-    assert h == input_h
-    assert k == input_k
+    # Run method with tuple input
+    j_tup, j_err_tup = conversions.convert_tmass_to_jhk(data=(input_j, input_j_err), output_mag='J')
+    h_tup, h_err_tup = conversions.convert_tmass_to_jhk(data=(input_h, input_h_err), output_mag='H')
+    k_tup, k_err_tup = conversions.convert_tmass_to_jhk(data=(input_k, input_k_err), output_mag='K')
+
+    # Check tuple and series input produces same result
+    assert j_tup == j_ser
+    assert h_tup == h_ser
+    assert k_tup == k_ser
+
+    # Check conversion function matches hand-check here
+    assert j_ser == input_j
+    assert h_ser == input_h
+    assert k_ser == input_k
+
+    # Check uncertainties
+    assert pytest.approx(j_err_ser, input_j_err, 5)
+    assert pytest.approx(h_err_ser, input_h_err, 5)
+    assert pytest.approx(k_err_ser, input_k_err, 5)
 
 
 def test_sdssgz_to_jhk():
@@ -138,13 +160,23 @@ def test_sdssgz_to_jhk():
     # Change data
     input_g = 10
     input_z = 11
+    input_g_err = 0.10
+    input_z_err = 0.11
     fgs.gsc_series['SDSSgMag'] = input_g
     fgs.gsc_series['SDSSzMag'] = input_z
+    fgs.gsc_series['SDSSgMagErr'] = input_g_err
+    fgs.gsc_series['SDSSzMagErr'] = input_z_err
 
-    # Run method
-    j, j_err = conversions.convert_sdssgz_to_jhk(data=fgs.gsc_series, output_mag='J')
-    h, h_err = conversions.convert_sdssgz_to_jhk(data=fgs.gsc_series, output_mag='H')
-    k, k_err = conversions.convert_sdssgz_to_jhk(data=fgs.gsc_series, output_mag='K')
+    # Run method with series input
+    j_ser, j_err_ser = conversions.convert_sdssgz_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h_ser, h_err_ser = conversions.convert_sdssgz_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k_ser, k_err_ser = conversions.convert_sdssgz_to_jhk(data=fgs.gsc_series, output_mag='K')
+
+    # Run method with tuple input
+    data = (input_g, input_g_err, input_z, input_z_err)
+    j_tup, j_err_tup = conversions.convert_sdssgz_to_jhk(data=data, output_mag='J')
+    h_tup, h_err_tup = conversions.convert_sdssgz_to_jhk(data=data, output_mag='H')
+    k_tup, k_err_tup = conversions.convert_sdssgz_to_jhk(data=data, output_mag='K')
 
     # Do calculation
     val = input_g - input_z
@@ -152,10 +184,20 @@ def test_sdssgz_to_jhk():
     output_h = input_g - 0.77 - 1.78*val + 0.08*val**2 - 0.04*val**3 + 0.009*val**4
     output_k = input_g - 0.87 - 1.70*val + 0.01*val**2 - 0.07*val**3 + 0.001*val**4
 
-    # Check output
-    assert j == output_j
-    assert h == output_h
-    assert k == output_k
+    # Check tuple and series input produces same result
+    assert j_tup == j_ser
+    assert h_tup == h_ser
+    assert k_tup == k_ser
+
+    # Check conversion function matches hand-check here
+    assert j_ser == output_j
+    assert h_ser == output_h
+    assert k_ser == output_k
+
+    # Check uncertainties
+    assert pytest.approx(j_err_ser, 0.27265120293170503, 5)
+    assert pytest.approx(h_err_ser, 0.28721836344780965, 5)
+    assert pytest.approx(k_err_ser, 0.2946740530383989, 5)
 
 
 def test_sdssgi_to_jhk():
@@ -168,13 +210,23 @@ def test_sdssgi_to_jhk():
     # Change data
     input_g = 10
     input_i = 11
+    input_g_err = 0.10
+    input_i_err = 0.11
     fgs.gsc_series['SDSSgMag'] = input_g
     fgs.gsc_series['SDSSiMag'] = input_i
+    fgs.gsc_series['SDSSgMagErr'] = input_g_err
+    fgs.gsc_series['SDSSiMagErr'] = input_i_err
 
-    # Run method
-    j, j_err = conversions.convert_sdssgi_to_jhk(data=fgs.gsc_series, output_mag='J')
-    h, h_err = conversions.convert_sdssgi_to_jhk(data=fgs.gsc_series, output_mag='H')
-    k, k_err = conversions.convert_sdssgi_to_jhk(data=fgs.gsc_series, output_mag='K')
+    # Run method with series input
+    j_ser, j_err_ser = conversions.convert_sdssgi_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h_ser, h_err_ser = conversions.convert_sdssgi_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k_ser, k_err_ser = conversions.convert_sdssgi_to_jhk(data=fgs.gsc_series, output_mag='K')
+
+    # Run method with tuple input
+    data = (input_g, input_g_err, input_i, input_i_err)
+    j_tup, j_err_tup = conversions.convert_sdssgi_to_jhk(data=data, output_mag='J')
+    h_tup, h_err_tup = conversions.convert_sdssgi_to_jhk(data=data, output_mag='H')
+    k_tup, k_err_tup = conversions.convert_sdssgi_to_jhk(data=data, output_mag='K')
 
     # Do calculation
     val = input_g - input_i
@@ -182,10 +234,20 @@ def test_sdssgi_to_jhk():
     output_h = input_g - 0.597 - 2.400*val + 0.450*val**2 - 0.078*val**3 + 0.00025*val**4
     output_k = input_g - 0.637 - 2.519*val + 0.568*val**2 - 0.151*val**3 + 0.013*val**4
 
-    # Check output
-    assert j == output_j
-    assert h == output_h
-    assert k == output_k
+    # Check tuple and series input produces same result
+    assert j_tup == j_ser
+    assert h_tup == h_ser
+    assert k_tup == k_ser
+
+    # Check conversion function matches hand-check here
+    assert j_ser == output_j
+    assert h_ser == output_h
+    assert k_ser == output_k
+
+    # Check uncertainties
+    assert pytest.approx(j_err_ser, 0.700281564042489, 5)
+    assert pytest.approx(h_err_ser, 0.4895968466769927, 5)
+    assert pytest.approx(k_err_ser, 0.5969626012226404, 5)
 
 
 def test_sdssiz_to_jhk():
@@ -198,13 +260,23 @@ def test_sdssiz_to_jhk():
     # Change data
     input_i = 10
     input_z = 11
+    input_i_err = 0.10
+    input_z_err = 0.11
     fgs.gsc_series['SDSSiMag'] = input_i
     fgs.gsc_series['SDSSzMag'] = input_z
+    fgs.gsc_series['SDSSiMagErr'] = input_i_err
+    fgs.gsc_series['SDSSzMagErr'] = input_z_err
 
-    # Run method
-    j, j_err = conversions.convert_sdssiz_to_jhk(data=fgs.gsc_series, output_mag='J')
-    h, h_err = conversions.convert_sdssiz_to_jhk(data=fgs.gsc_series, output_mag='H')
-    k, k_err = conversions.convert_sdssiz_to_jhk(data=fgs.gsc_series, output_mag='K')
+    # Run method with series input
+    j_ser, j_err_ser = conversions.convert_sdssiz_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h_ser, h_err_ser = conversions.convert_sdssiz_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k_ser, k_err_ser = conversions.convert_sdssiz_to_jhk(data=fgs.gsc_series, output_mag='K')
+
+    # Run method with tuple input
+    data = (input_i, input_i_err, input_z, input_z_err)
+    j_tup, j_err_tup = conversions.convert_sdssiz_to_jhk(data=data, output_mag='J')
+    h_tup, h_err_tup = conversions.convert_sdssiz_to_jhk(data=data, output_mag='H')
+    k_tup, k_err_tup = conversions.convert_sdssiz_to_jhk(data=data, output_mag='K')
 
     # Do calculation
     val = input_i - input_z
@@ -212,10 +284,20 @@ def test_sdssiz_to_jhk():
     output_h = input_i - 1.051 - 5.361*val + 8.398*val**2 - 7.240*val**3 + 2.111*val**4
     output_k = input_i - 1.127 - 5.379*val + 6.454*val**2 - 3.499*val**3 + 0.057*val**4
 
-    # Check output
-    assert j == output_j
-    assert h == output_h
-    assert k == output_k
+    # Check tuple and series input produces same result
+    assert j_tup == j_ser
+    assert h_tup == h_ser
+    assert k_tup == k_ser
+
+    # Check conversion function matches hand-check here
+    assert j_ser == output_j
+    assert h_ser == output_h
+    assert k_ser == output_k
+
+    # Check uncertainties
+    assert pytest.approx(j_err_ser, 3.4386988607490627, 5)
+    assert pytest.approx(h_err_ser, 7.868447911817022, 5)
+    assert pytest.approx(k_err_ser, 4.308133116754037, 5)
 
 
 def test_gsc2bjin_to_jhk():
@@ -228,13 +310,23 @@ def test_gsc2bjin_to_jhk():
     # Change data
     input_bj = 10
     input_in = 11
+    input_bj_err = 0.10
+    input_in_err = 0.11
     fgs.gsc_series['JpgMag'] = input_bj
     fgs.gsc_series['NpgMag'] = input_in
+    fgs.gsc_series['JpgMagErr'] = input_bj_err
+    fgs.gsc_series['NpgMagErr'] = input_in_err
 
-    # Run method
-    j, j_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.gsc_series, output_mag='J')
-    h, h_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.gsc_series, output_mag='H')
-    k, k_err = conversions.convert_gsc2bjin_to_jhk(data=fgs.gsc_series, output_mag='K')
+    # Run method with series input
+    j_ser, j_err_ser = conversions.convert_gsc2bjin_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h_ser, h_err_ser = conversions.convert_gsc2bjin_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k_ser, k_err_ser = conversions.convert_gsc2bjin_to_jhk(data=fgs.gsc_series, output_mag='K')
+
+    # Run method with tuple input
+    data = (input_bj, input_bj_err, input_in, input_in_err)
+    j_tup, j_err_tup = conversions.convert_gsc2bjin_to_jhk(data=data, output_mag='J')
+    h_tup, h_err_tup = conversions.convert_gsc2bjin_to_jhk(data=data, output_mag='H')
+    k_tup, k_err_tup = conversions.convert_gsc2bjin_to_jhk(data=data, output_mag='K')
 
     # Do calculation
     val = input_bj - input_in
@@ -242,10 +334,20 @@ def test_gsc2bjin_to_jhk():
     output_h = input_bj + 0.06*val**2 - 1.71*val - 0.10
     output_k = input_bj + 0.06*val**2 - 1.78*val - 0.11
 
-    # Check output
-    assert j == output_j
-    assert h == output_h
-    assert k == output_k
+    # Check tuple and series input produces same result
+    assert j_tup == j_ser
+    assert h_tup == h_ser
+    assert k_tup == k_ser
+
+    # Check conversion function matches hand-check here
+    assert j_ser == output_j
+    assert h_ser == output_h
+    assert k_ser == output_k
+
+    # Check uncertainties
+    assert pytest.approx(j_err_ser, 0.24527127838375157, 5)
+    assert pytest.approx(h_err_ser, 0.3649689782378769, 5)
+    assert pytest.approx(k_err_ser, 0.3236128314452318, 5)
 
 
 def test_gsc2rfin_to_jhk():
@@ -258,13 +360,23 @@ def test_gsc2rfin_to_jhk():
     # Change data
     input_rf = 10
     input_in = 11
+    input_rf_err = 0.10
+    input_in_err = 0.11
     fgs.gsc_series['FpgMag'] = input_rf
     fgs.gsc_series['NpgMag'] = input_in
+    fgs.gsc_series['FpgMagErr'] = input_rf_err
+    fgs.gsc_series['NpgMagErr'] = input_in_err
 
-    # Run method
-    j, j_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.gsc_series, output_mag='J')
-    h, h_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.gsc_series, output_mag='H')
-    k, k_err = conversions.convert_gsc2rfin_to_jhk(data=fgs.gsc_series, output_mag='K')
+    # Run method with series input
+    j_ser, j_err_ser = conversions.convert_gsc2rfin_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h_ser, h_err_ser = conversions.convert_gsc2rfin_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k_ser, k_err_ser = conversions.convert_gsc2rfin_to_jhk(data=fgs.gsc_series, output_mag='K')
+
+    # Run method with tuple input
+    data = (input_rf, input_rf_err, input_in, input_in_err)
+    j_tup, j_err_tup = conversions.convert_gsc2rfin_to_jhk(data=data, output_mag='J')
+    h_tup, h_err_tup = conversions.convert_gsc2rfin_to_jhk(data=data, output_mag='H')
+    k_tup, k_err_tup = conversions.convert_gsc2rfin_to_jhk(data=data, output_mag='K')
 
     # Do calculation
     val = input_rf - input_in
@@ -272,10 +384,20 @@ def test_gsc2rfin_to_jhk():
     output_h = input_rf + 0.25*val**2 - 2.17*val - 0.67
     output_k = input_rf + 0.28*val**2 - 2.35*val - 0.73
 
-    # Check output
-    assert j == output_j
-    assert h == output_h
-    assert k == output_k
+    # Check tuple and series input produces same result
+    assert j_tup == j_ser
+    assert h_tup == h_ser
+    assert k_tup == k_ser
+
+    # Check conversion function matches hand-check here
+    assert j_ser == output_j
+    assert h_ser == output_h
+    assert k_ser == output_k
+
+    # Check uncertainties
+    assert pytest.approx(j_err_ser, 0.30678481748776193, 5)
+    assert pytest.approx(h_err_ser, 0.46706206827893615, 5)
+    assert pytest.approx(k_err_ser, 0.5290933057070359, 5)
 
 
 def test_gsc2bjrf_to_jhk():
@@ -288,13 +410,23 @@ def test_gsc2bjrf_to_jhk():
     # Change data
     input_bj = 10
     input_rf = 11
+    input_bj_err = 0.10
+    input_rf_err = 0.11
     fgs.gsc_series['JpgMag'] = input_bj
     fgs.gsc_series['FpgMag'] = input_rf
+    fgs.gsc_series['JpgMagErr'] = input_bj_err
+    fgs.gsc_series['FpgMagErr'] = input_rf_err
 
-    # Run method
-    j, j_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.gsc_series, output_mag='J')
-    h, h_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.gsc_series, output_mag='H')
-    k, k_err = conversions.convert_gsc2bjrf_to_jhk(data=fgs.gsc_series, output_mag='K')
+    # Run method with series input
+    j_ser, j_err_ser = conversions.convert_gsc2bjrf_to_jhk(data=fgs.gsc_series, output_mag='J')
+    h_ser, h_err_ser = conversions.convert_gsc2bjrf_to_jhk(data=fgs.gsc_series, output_mag='H')
+    k_ser, k_err_ser = conversions.convert_gsc2bjrf_to_jhk(data=fgs.gsc_series, output_mag='K')
+
+    # Run method with tuple input
+    data = (input_bj, input_bj_err, input_rf, input_rf_err)
+    j_tup, j_err_tup = conversions.convert_gsc2bjrf_to_jhk(data=data, output_mag='J')
+    h_tup, h_err_tup = conversions.convert_gsc2bjrf_to_jhk(data=data, output_mag='H')
+    k_tup, k_err_tup = conversions.convert_gsc2bjrf_to_jhk(data=data, output_mag='K')
 
     # Do calculation
     val = input_bj - input_rf
@@ -302,7 +434,17 @@ def test_gsc2bjrf_to_jhk():
     output_h = input_bj - 0.24*val**2 - 1.66*val - 0.41
     output_k = input_bj - 0.26*val**2 - 1.70*val - 0.45
 
-    # Check output
-    assert j == output_j
-    assert h == output_h
-    assert k == output_k
+    # Check tuple and series input produces same result
+    assert j_tup == j_ser
+    assert h_tup == h_ser
+    assert k_tup == k_ser
+
+    # Check conversion function matches hand-check here
+    assert j_ser == output_j
+    assert h_ser == output_h
+    assert k_ser == output_k
+
+    # Check uncertainties
+    assert pytest.approx(j_err_ser, 0.3268272426848776, 5)
+    assert pytest.approx(h_err_ser, 0.387910756252002, 5)
+    assert pytest.approx(k_err_ser, 0.44586387576927555, 5)

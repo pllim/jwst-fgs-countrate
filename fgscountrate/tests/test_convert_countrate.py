@@ -1,6 +1,3 @@
-import copy
-import itertools
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -9,19 +6,90 @@ import fgscountrate
 from fgscountrate.fgs_countrate_core import FGSCountrate
 
 
-def test_compute_countrate_magnitude():
-    """Test the conversion from GSC magnitudes to FGS countrate"""
+def test_query_fgs_countrate_magnitude():
+    """
+    Test this function runs smoothly and doesn't error
+    (not tested anywhere else)
+    """
 
-    # Test code
-
-    # Test by hand
-    id = 'N13I000018'
-    fgs = FGSCountrate(guide_star_id=id, guider=1)
+    gs_id = 'N13I000018'
+    guider = 1
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
     cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
-    assert cr == 1777234.5129574337  # TODO DO THIS BETTER
 
-    # Compare results
-    assert 1
+
+def test_compute_countrate_magnitude():
+    """
+    Test the conversion from GSC magnitudes to FGS countrate
+    returns values as expected
+    """
+
+    gs_id = 'N13I000018'
+    guider = 1
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+
+    # Reset data to a set of constant, fake data
+    values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965,
+              14.9447, 0.285722, 14.0877, 0.2927929, 13.7468, 0.239294,
+              13.339, 0.0250000003, 12.993, 0.0270000007, 12.901, 0.0270000007,
+              15.78594, 0.005142, 14.6547, 0.003211281, 14.27808, 0.003273380,
+              14.1443, 0.003414216, 14.1067, 0.00433389]
+    index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
+             'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
+             'tmassJmag', 'tmassJmagErr', 'tmassHmag', 'tmassHmagErr', 'tmassKsMag', 'tmassKsMagErr',
+             'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
+             'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
+    fgs.gsc_series = pd.Series(values, index=index)
+
+    # Convert to JHK magnitudes
+    fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
+        fgs.calc_jhk_mag(fgs.gsc_series)
+
+    # Compute FGS countrate and magnitude
+    cr, cr_err, mag, mag_err = fgs.calc_fgs_cr_mag_and_err()
+
+    assert pytest.approx(cr, 1777234.5129574337, 5)
+    assert pytest.approx(cr_err, 154340.24919027157, 5)
+    assert pytest.approx(mag, -39.77243568524769, 5)
+    assert pytest.approx(mag_err, 1.9887037388556956, 5)
+
+
+def test_gscbj_sdssg_missing():
+    """Test that when GSC_B_J and SDSS_g are missing, their signal is set to 0"""
+
+    gs_id = 'N13I000018'
+    guider = 1
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+
+    # Reset data to a set of constant, fake data with GSC_B_J and SDSS_g missing
+    values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965,
+              -999, -999, 14.0877, 0.2927929, 13.7468, 0.239294,
+              13.339, 0.0250000003, 12.993, 0.0270000007, 12.901, 0.0270000007,
+              15.78594, 0.005142, -999, -999, 14.27808, 0.003273380,
+              14.1443, 0.003414216, 14.1067, 0.00433389]
+    index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
+             'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
+             'tmassJmag', 'tmassJmagErr', 'tmassHmag', 'tmassHmagErr', 'tmassKsMag', 'tmassKsMagErr',
+             'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
+             'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
+    fgs.gsc_series = pd.Series(values, index=index)
+
+    # Convert to JHK magnitudes
+    fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
+        fgs.calc_jhk_mag(fgs.gsc_series)
+
+    # Compute FGS countrate and magnitude to get fgs.band_dataframe attribute
+    fgs.calc_fgs_cr_mag_and_err()
+
+    # Check Mag, ABMag, and Flux = -999 and Signal is set to 0 for both
+    assert fgs.band_dataframe.at['JpgMag', 'Mag'] == -999
+    assert fgs.band_dataframe.at['SDSSgMag', 'Mag'] == -999
+    assert fgs.band_dataframe.at['JpgMag', 'ABMag'] == -999
+    assert fgs.band_dataframe.at['SDSSgMag', 'ABMag'] == -999
+    assert fgs.band_dataframe.at['JpgMag', 'Flux'] == -999
+    assert fgs.band_dataframe.at['SDSSgMag', 'Flux'] == -999
+    assert fgs.band_dataframe.at['JpgMag', 'Signal'] == 0.0
+    assert fgs.band_dataframe.at['SDSSgMag', 'Signal'] == 0.0
 
 
 def test_errors():
@@ -32,7 +100,7 @@ def test_errors():
 
     # Test 1: data only includes 2MASS
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=id, catalog='GSC241').iloc[0]
+    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC241').iloc[0]
 
     fgs._present_mags = ['tmassJmag', 'tmassHmag', 'tmassKsMag']
     for index in set(fgscountrate.fgs_countrate_core.GSC_BAND_NAMES) - set(fgs._present_mags):
@@ -47,7 +115,7 @@ def test_errors():
     # Test 2: Guider number is invalid
     guider = 3
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=id, catalog='GSC241').iloc[0]
+    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC241').iloc[0]
 
     with pytest.raises(ValueError) as excinfo:
         fgs.calc_fgs_cr_mag_and_err()
@@ -57,7 +125,7 @@ def test_errors():
 def test_output_options():
     """
     Test the output options for calc_fgs_cr_mag_and_err()
-        and _calc_fgs_cr_mag() are as expected
+    and _calc_fgs_cr_mag() are as expected
     """
 
     gs_id = 'N13I000018'
