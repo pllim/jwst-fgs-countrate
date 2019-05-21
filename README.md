@@ -12,31 +12,41 @@ Collaborators include Shannon Osborne ([@shanosborne](https://github.com/shanosb
 Example Use
 -----------
 
-To compute the FGS countrate given a guide star ID:
+To compute the FGS countrate and magnitude given a guide star ID:
 ```
 import fgscountrate
 fgs = fgscountrate.FGS_Countrate(guide_star_id='N13I000018', guider=1)
-fgs_countrate = fgs.get_fgs_countrate()
+cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
+```
+
+The countrate and magnitude calculations are also saved in attributes
+```
+# Countrate and Magnitude attributes
+fgs.countrate
+fgs.countrate_err
+fgs.magnitude
+fgs.magnitude_err
+```
+
+To get the guide star data from the guide star catalog
+```
+# After doing the countrate calculation, access the gsc_series attribute
+import fgscountrate
+fgs = FGS_Countrate(guide_star_id='N13I000018', guider=1)
+fgs_countrate = fgs.query_fgs_countrate_magnitude()
+fgs.gsc_series
+
+# Or independent of the countrate calculation, use query_gsc()
+from fgscountrate.utils import query_gsc
+data = query_gsc(gs_id='N13I000018')
 ```
 
 To learn which conversions were used when calculating the J, H, and K magnitudes
 ```
+# Conversion method attributes
 fgs.j_convert_method
 fgs.h_convert_method
 fgs.k_convert_method
-```
-
-To get the guide star data from the guide star catalog:
-```
-# After doing the countrate calculation
-import fgscountrate
-fgs = FGS_Countrate(guide_star_id='N13I000018', guider=1)
-fgs_countrate = fgs.get_fgs_countrate()
-fgs.data
-
-# Or independent of the countrate calculation
-from fgscountrate.utils import query_gsc
-data = query_gsc(gs_id='N13I000018')
 ```
 
 Or to access any of the individual JHK conversion equations
@@ -52,6 +62,12 @@ from fgscountrate.utils import query_gsc
 dataframe = query_gsc(gs_id='N13I000018')
 dataseries = dataframe.iloc[0]
 j_mag = conversions.convert_sdssgz_to_jhk(data=dataseries, output_mag='J')
+```
+
+To get the data from the step by step calculations for the FGS countrate and magnitude
+```
+# Returns a dataframe
+fgs.band_dataframe
 ```
 
 License
