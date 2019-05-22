@@ -73,8 +73,8 @@ CR_CONVERSION_G1 = 1.74
 CR_CONVERSION_G2 = 1.57
 
 # Magnitude conversion constant
-MAG_CONVERSION_G1 = -24.7934
-MAG_CONVERSION_G2 = -24.7011
+MAG_CONVERSION_G1 = 28.29
+MAG_CONVERSION_G2 = 28.20
 
 
 class FGSCountrate:
@@ -105,10 +105,15 @@ class FGSCountrate:
         self.guider = guider
         self.gsc_series = None
 
-        # Band information
-        self._all_mag_series = None
-        self._all_mag_err_series = None
-        self._present_mags = None
+        # Queried band information
+        self._all_queried_mag_series = None
+        self._all_queried_mag_err_series = None
+        self._present_queried_mags = None
+
+        # Calculated band information (with JHK overwritten)
+        self._all_calculated_mag_series = None
+        self._all_calculated_mag_err_series = None
+        self._present_calculated_mags = None
 
         # Conversion information
         self.j_convert_method, self.h_convert_method, self.k_convert_method = None, None, None
@@ -152,7 +157,6 @@ class FGSCountrate:
         if len(data_frame) == 1:
             self.gsc_series = data_frame.iloc[0]
         else:
-            # TODO: May do more fixing here later
             raise ValueError("This Guide Star ID points to multiple lines in GSC2.4.1")
 
         # Convert to JHK magnitudes
@@ -186,14 +190,14 @@ class FGSCountrate:
         """
 
         # Pull all the magnitudes from the series
-        self._all_mag_series = data.loc[GSC_BAND_NAMES]
+        self._all_queried_mag_series = data.loc[GSC_BAND_NAMES]
 
         # Pull magnitude errors for each band
-        mag_err_list = [self.gsc_series[ind + 'Err'] for ind in self._all_mag_series.index]
-        self._all_mag_err_series = pd.Series(mag_err_list, index=self._all_mag_series.index)
+        mag_err_list = [self.gsc_series[ind + 'Err'] for ind in self._all_queried_mag_series.index]
+        self._all_queried_mag_err_series = pd.Series(mag_err_list, index=self._all_queried_mag_series.index + 'Err')
 
         # List of the magnitude names that are not fill values in the series
-        self._present_mags = list(self._all_mag_series[self._all_mag_series != -999].index)
+        self._present_queried_mags = list(self._all_queried_mag_series[self._all_queried_mag_series != -999].index)
 
         # Dictionary of convert methods
         method_list = []
@@ -211,7 +215,7 @@ class FGSCountrate:
             # Pull the first entry in the OrderedDict that matches what values are present.
             for key, value in switcher.items():
                 key_list = key.split(', ')
-                if set(key_list).issubset(self._present_mags):
+                if set(key_list).issubset(self._present_queried_mags):
                     setattr(self, '{}_convert_method'.format(i[5].lower()), value)
                     break
             if getattr(self, '{}_convert_method'.format(i[5].lower())) is None:
@@ -225,6 +229,19 @@ class FGSCountrate:
         self.j_mag, self.j_mag_err = method_list[0](data=self.gsc_series, output_mag='J')
         self.h_mag, self.h_mag_err = method_list[1](data=self.gsc_series, output_mag='H')
         self.k_mag, self.k_mag_err = method_list[2](data=self.gsc_series, output_mag='K')
+
+        # Create new attribute with updated series
+        self._all_calculated_mag_series = copy.deepcopy(self._all_queried_mag_series)
+        self._all_calculated_mag_series.loc[['tmassJmag', 'tmassHmag', 'tmassKsMag']] = \
+            self.j_mag, self.h_mag, self.k_mag
+
+        self._all_calculated_mag_err_series = copy.deepcopy(self._all_queried_mag_err_series)
+        self._all_calculated_mag_err_series.loc[['tmassJmagErr', 'tmassHmagErr', 'tmassKsMagErr']] = \
+            self.j_mag_err, self.h_mag_err, self.k_mag_err
+
+        self._present_calculated_mags = self._present_queried_mags + [a for a in
+                                                                      ['tmassJmag', 'tmassHmag', 'tmassKsMag']
+                                                                      if a not in self._present_queried_mags]
 
         return self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err
 
@@ -281,7 +298,7 @@ class FGSCountrate:
 
         # Calculate and add ABMagnitudes
         def ab_mag(row):
-            if row.name in self._present_mags:
+            if row.name in self._present_calculated_mags:
                 return utils.convert_to_abmag(row['Mag'], row.name)
             else:
                 return -999
@@ -301,7 +318,7 @@ class FGSCountrate:
         extended_waves = np.array([3.0, 4.0, 5.0, 5.5])
         mag = np.full(4, np.nan)
         abmag = np.full(4, np.nan)
-        flux = df.at[df.index[-1], "Flux"] * 2.17e0 ** 2 / extended_waves ** 2
+        flux = df.at[df.index[-1], "Flux"] * 2.17**2 / extended_waves**2
         in_data = list(map(list, zip(extended_waves, mag, abmag, flux)))
         df2 = pd.DataFrame(in_data, columns=['Wavelength', 'Mag', 'ABMag', 'Flux'],
                            index=['Extend1', 'Extend2', 'Extend3', 'Extend4'])
@@ -320,7 +337,7 @@ class FGSCountrate:
         df['Signal'] = df.apply(lambda row: calc_signal(row), axis=1)
 
         # Can't compute if we only have J, H, and K  # TODO will be changed later
-        if {'tmassJmag', 'tmassHmag', 'tmassKsMag'} == set(self._present_mags):
+        if {'tmassJmag', 'tmassHmag', 'tmassKsMag'} == set(self._present_calculated_mags):
             raise ValueError('Cannot compute FGS countrate & magnitude for a guide star ({}) with only 2MASS '
                              'data'.format(self.id))
 
@@ -388,7 +405,7 @@ class FGSCountrate:
         using all available bands from the GSC
 
         Returns
-        ------
+        -------
         fgs_countrate : float
             The FGS countrate for the guide star based on J, H, and K mags
             and the guider number
@@ -413,16 +430,16 @@ class FGSCountrate:
 
         # Calculate magnitude/countrate
         self.fgs_countrate, self.fgs_magnitude, self.band_dataframe = \
-            self._calc_fgs_cr_mag(to_compute='both', band_series=self._all_mag_series,
+            self._calc_fgs_cr_mag(to_compute='both', band_series=self._all_calculated_mag_series,
                                   guider_throughput=throughput_dict, guider_gain=cr_conversion,
                                   return_dataframe=True)
 
         # Band Magnitude Error
         cr_err_list = []
         mag_err_list = []
-        for band in self._present_mags:
-            band_data_with_err = copy.deepcopy(self._all_mag_series)
-            band_data_with_err[band] += self._all_mag_err_series[band]
+        for band in self._present_calculated_mags:
+            band_data_with_err = copy.deepcopy(self._all_calculated_mag_series)
+            band_data_with_err[band] += self._all_calculated_mag_err_series[band+'Err']
             cr_band_err, mag_band_err = self._calc_fgs_cr_mag(to_compute='both',
                                                               band_series=band_data_with_err,
                                                               guider_throughput=throughput_dict,
@@ -433,7 +450,7 @@ class FGSCountrate:
         # Throughput Error - 5%
         new_throughput = {key: val * 1.05 for key, val in throughput_dict.items()}
         cr_tput_err, mag_tput_err = self._calc_fgs_cr_mag(to_compute='both',
-                                                          band_series=self._all_mag_series,
+                                                          band_series=self._all_calculated_mag_series,
                                                           guider_throughput=new_throughput,
                                                           guider_gain=cr_conversion)
         cr_err_list.append(cr_tput_err - self.fgs_countrate)
@@ -442,17 +459,14 @@ class FGSCountrate:
         # Gain Error - 5%
         new_gain = cr_conversion * 1.05
         cr_gain_err, mag_gain_err = self._calc_fgs_cr_mag(to_compute='both',
-                                                          band_series=self._all_mag_series,
+                                                          band_series=self._all_calculated_mag_series,
                                                           guider_throughput=throughput_dict,
                                                           guider_gain=new_gain)
         cr_err_list.append(cr_gain_err - self.fgs_countrate)
-        mag_err_list.append(mag_gain_err - self.fgs_magnitude)
 
-        # Integral Error - 5% # TODO - figure out what value to take 5% of
-        cr_integral_err = self.fgs_countrate * 1.05
-        mag_integral_err = self.fgs_magnitude * 1.05
-        cr_err_list.append(cr_integral_err - self.fgs_countrate)
-        mag_err_list.append(mag_integral_err - self.fgs_magnitude)
+        # Integral Error - 5%
+        cr_err_list.append(self.fgs_countrate * 0.05)
+        mag_err_list.append(self.fgs_magnitude * 0.05)
 
         # Combine Error
         self.fgs_countrate_err = np.sqrt(np.sum(i**2 for i in cr_err_list))

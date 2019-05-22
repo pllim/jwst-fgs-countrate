@@ -102,10 +102,10 @@ def test_errors():
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
     fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC241').iloc[0]
 
-    fgs._present_mags = ['tmassJmag', 'tmassHmag', 'tmassKsMag']
-    for index in set(fgscountrate.fgs_countrate_core.GSC_BAND_NAMES) - set(fgs._present_mags):
+    fgs._present_calculated_mags = ['tmassJmag', 'tmassHmag', 'tmassKsMag']
+    for index in set(fgscountrate.fgs_countrate_core.GSC_BAND_NAMES) - set(fgs._present_calculated_mags):
         fgs.gsc_series.loc[index] = -999
-    fgs._all_mag_series = fgs.gsc_series.loc[fgscountrate.fgs_countrate_core.GSC_BAND_NAMES]
+    fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgscountrate.fgs_countrate_core.GSC_BAND_NAMES]
 
     with pytest.raises(ValueError) as excinfo:
         fgs.calc_fgs_cr_mag_and_err()
@@ -132,17 +132,17 @@ def test_output_options():
     guider = 2
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
     fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC241').iloc[0]
-    fgs._present_mags = fgscountrate.fgs_countrate_core.GSC_BAND_NAMES
-    fgs._all_mag_series = fgs.gsc_series.loc[fgs._present_mags]
-    mag_err_list = [fgs.gsc_series[ind + 'Err'] for ind in fgs._all_mag_series.index]
-    fgs._all_mag_err_series = pd.Series(mag_err_list, index=fgs._all_mag_series.index)
+    fgs._present_calculated_mags = fgscountrate.fgs_countrate_core.GSC_BAND_NAMES
+    fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgs._present_calculated_mags]
+    mag_err_list = [fgs.gsc_series[ind + 'Err'] for ind in fgs._all_calculated_mag_series.index]
+    fgs._all_calculated_mag_err_series = pd.Series(mag_err_list, index=fgs._all_calculated_mag_series.index+'Err')
 
     # Test output from calc_fgs_cr_mag_and_err()
     return_list = fgs.calc_fgs_cr_mag_and_err()
     assert len(return_list) == 4
 
     # Test output from _calc_fgs_cr_mag()
-    band_series = fgs._all_mag_series
+    band_series = fgs._all_calculated_mag_series
     guider_throughput = fgscountrate.fgs_countrate_core.THROUGHPUT_G2
     guider_gain = fgscountrate.fgs_countrate_core.CR_CONVERSION_G2
 
