@@ -19,7 +19,7 @@ bc0 = new BuildConfig()
 //            This string becomes the stage header on Jenkins' UI.
 //            Keep it short...
 bc0.name = "test"
-bc.conda_packages = ["python=3.6"]
+bc0.conda_packages = ["python=3.6"]
 
 // (Required) Use Linux to execute any stages defined here
 // (Note that Jenkins can only be run with Linux, not MacOSX/Windows)
