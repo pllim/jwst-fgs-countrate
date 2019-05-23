@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -12,10 +14,37 @@ def test_query_fgs_countrate_magnitude():
     (not tested anywhere else)
     """
 
+    # A case with all bands/uncertainties present
     gs_id = 'N13I000018'
     guider = 1
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
     cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
+    assert cr > 0
+    assert mag > 0
+    if any(i == -999 for i in fgs._all_queried_mag_series.values):
+        warnings.warn('GS ID N13I000018 no longer behaves as originally expected. Test must be updated')
+
+    # A case with missing all 3 tmass bands
+    gs_id = 'N94D006388'
+    guider = 1
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+    cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
+    assert any(fgs.band_dataframe.at[i, 'Signal'] > 0 for i in ['tmassJmag', 'tmassHmag', 'tmassKsMag'])
+    assert cr > 0
+    assert mag > 0
+    if any(i != -999 for i in fgs.gsc_series[['tmassJmag', 'tmassHmag', 'tmassKsMag']].values):
+        warnings.warn('GS ID N94D006388 no longer behaves as originally expected. Test must be updated')
+
+    # A case with missing uncertainty data
+    gs_id = 'N13I018276'
+    guider = 1
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+    cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
+    assert fgs.k_mag_err > 0  # this value should get reset
+    assert cr > 0
+    assert mag > 0
+    if fgs.gsc_series['tmassKsMagErr'] != -999:
+        warnings.warn('GS ID N13I018276 no longer behaves as originally expected. Test must be updated')
 
 
 def test_compute_countrate_magnitude():

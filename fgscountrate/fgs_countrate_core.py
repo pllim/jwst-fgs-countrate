@@ -21,7 +21,7 @@ import pandas as pd
 from . import conversions
 from . import utils
 
-# Constants
+# Universal Constant
 PLANCK = 6.625e-27
 
 # GSC Band Information
@@ -31,6 +31,9 @@ GSC_BAND_NAMES = ['tmassJmag', 'tmassHmag', 'tmassKsMag',
 GSC_BAND_WAVELENGTH = [1.25, 1.65, 2.17,
                        0.3551, 0.4680, 0.6166, 0.7480,
                        0.8932, 0.4660, 0.6450, 0.8500]
+
+# Factor to use when calculating a band's missing uncertainty
+BAND_ERR = 0.025
 
 # FGS-Guider + OTE throughput
 THROUGHPUT_G1 = {
@@ -192,8 +195,9 @@ class FGSCountrate:
         # Pull all the magnitudes from the series
         self._all_queried_mag_series = data.loc[GSC_BAND_NAMES]
 
-        # Pull magnitude errors for each band
-        mag_err_list = [self.gsc_series[ind + 'Err'] for ind in self._all_queried_mag_series.index]
+        # Pull magnitude errors for each band, and replace missing errors with 2.5% of the magnitude value
+        mag_err_list = [self.gsc_series[ind + 'Err'] if self.gsc_series[ind + 'Err'] != -999
+                        else self._all_queried_mag_series[ind] * BAND_ERR for ind in self._all_queried_mag_series.index]
         self._all_queried_mag_err_series = pd.Series(mag_err_list, index=self._all_queried_mag_series.index + 'Err')
 
         # List of the magnitude names that are not fill values in the series
@@ -219,16 +223,19 @@ class FGSCountrate:
                     setattr(self, '{}_convert_method'.format(i[5].lower()), value)
                     break
             if getattr(self, '{}_convert_method'.format(i[5].lower())) is None:
-                raise ValueError('There is not enough information on this '
-                                 'guide star to get its {} magnitude'.format(i))
+                raise ValueError('There is not enough information on this guide star to get its {} magnitude'.format(i))
 
             # Get the method
             method = getattr(conversions, getattr(self, '{}_convert_method'.format(i[5].lower())), lambda: "Invalid")
             method_list.append(method)
 
-        self.j_mag, self.j_mag_err = method_list[0](data=self.gsc_series, output_mag='J')
-        self.h_mag, self.h_mag_err = method_list[1](data=self.gsc_series, output_mag='H')
-        self.k_mag, self.k_mag_err = method_list[2](data=self.gsc_series, output_mag='K')
+        # Create a new series with the edited data (in case uncertainties were replaced)
+        edited_data_series = pd.concat([self._all_queried_mag_series, self._all_queried_mag_err_series])
+
+        # Run conversions
+        self.j_mag, self.j_mag_err = method_list[0](data=edited_data_series, output_mag='J')
+        self.h_mag, self.h_mag_err = method_list[1](data=edited_data_series, output_mag='H')
+        self.k_mag, self.k_mag_err = method_list[2](data=edited_data_series, output_mag='K')
 
         # Create new attribute with updated series
         self._all_calculated_mag_series = copy.deepcopy(self._all_queried_mag_series)
