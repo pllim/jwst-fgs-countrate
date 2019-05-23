@@ -18,7 +18,7 @@ AUTHOR = metadata.get('author', 'Space Telescope Science Institute')
 AUTHOR_EMAIL = metadata.get('author_email', '')
 LICENSE = metadata.get('license', 'unknown')
 URL = metadata.get('url', 'http://stsci.edu')
-__minimum_python_version__ = metadata.get("minimum_python_version", "3.5")
+__minimum_python_version__ = metadata.get("minimum_python_version", "3.6")
 
 # Enforce Python version check - this is the same check as in __init__.py but
 # this one has to happen before importing ah_bootstrap.
