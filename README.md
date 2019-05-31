@@ -15,28 +15,28 @@ Example Use
 To compute the FGS countrate and magnitude given a guide star ID:
 ```
 import fgscountrate
-fgs = fgscountrate.FGS_Countrate(guide_star_id='N13I000018', guider=1)
+fgs = fgscountrate.FGSCountrate(guide_star_id='N13I000018', guider=1)
 cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
 ```
 
 The countrate and magnitude calculations are also saved in attributes
 ```
 # Countrate and Magnitude attributes
-fgs.countrate
-fgs.countrate_err
-fgs.magnitude
-fgs.magnitude_err
+fgs.fgs_countrate
+fgs.fgs_countrate_err
+fgs.fgs_magnitude
+fgs.fgs_magnitude_err
 ```
 
 To get the guide star data from the guide star catalog
 ```
 # After doing the countrate calculation, access the gsc_series attribute
 import fgscountrate
-fgs = FGS_Countrate(guide_star_id='N13I000018', guider=1)
+fgs = fgscountrate.FGSCountrate(guide_star_id='N13I000018', guider=1)
 fgs_countrate = fgs.query_fgs_countrate_magnitude()
 fgs.gsc_series
 
-# Or independent of the countrate calculation, use query_gsc()
+# Or independent of the countrate calculation, use query_gsc() to return a Pandas dataframe
 from fgscountrate.utils import query_gsc
 data = query_gsc(gs_id='N13I000018')
 ```
@@ -54,8 +54,10 @@ Or to access any of the individual JHK conversion equations
 # Using already known data
 from fgscountrate import conversions
 g_mag = 14.5
+g_mag_err = 0.1
 z_mag = 15.2
-j_mag = conversions.convert_sdssgz_to_jhk(data=(g_mag, z_mag), output_mag='J')
+z_mag_err = 0.1
+j_mag = conversions.convert_sdssgz_to_jhk(data=(g_mag, g_mag_err, z_mag, z_mag_err), output_mag='J')
 
 # Using data queried from the GSC using query_gsc()
 from fgscountrate.utils import query_gsc
