@@ -60,6 +60,7 @@ z_mag_err = 0.1
 j_mag = conversions.convert_sdssgz_to_jhk(data=(g_mag, g_mag_err, z_mag, z_mag_err), output_mag='J')
 
 # Using data queried from the GSC using query_gsc()
+from fgscountrate import conversions
 from fgscountrate.utils import query_gsc
 dataframe = query_gsc(gs_id='N13I000018')
 dataseries = dataframe.iloc[0]
