@@ -11,7 +11,8 @@ INSTALL_REQUIRES = [
     'numpy',
     'pytest',
     'requests',
-    'pandas'
+    'pandas',
+    'astropy'
 ]
 
 setup(name='fgscountrate',
