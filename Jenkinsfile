@@ -12,30 +12,41 @@ if (utils.scm_checkout()) return
 // Set up the matrix of builds
 matrix = []
 
-// (Required) Create a new build configuration
-bc0 = new BuildConfig()
+// Establish variables for the matrix
+matrix_python = ["3.5", "3.6", "3.7"]
 
-// (Required) Give the build configuration a name.
-//            This string becomes the stage header on Jenkins' UI.
-//            Keep it short...
-bc0.name = "test"
-bc0.conda_packages = ["python=3.6"]
+for (python_ver in matrix_python) {
 
-// (Required) Use Linux to execute any stages defined here
-// (Note that Jenkins can only be run with Linux, not MacOSX/Windows)
-bc0.nodetype = "linux"
+    // (Required) Create a new build configuration
+    bc = new BuildConfig()
 
-// (Required) Execute a series of commands to set up the build
-bc0.build_cmds = [
-    "pip install pytest",
-    "python setup.py install",
-]
+    // (Required) Give the build configuration a name.
+    //            This string becomes the stage header on Jenkins' UI.
+    //            Keep it short...
+    bc.name = "test-py${python_ver}"
+    bc.conda_packages = ["python=${python_ver}"]
 
-// (Optional) Execute a series of test commands
-bc0.test_cmds = ["pytest fgscountrate/tests/ --junitxml=results.xml"]
+    // (Required) Use Linux to execute any stages defined here
+    // (Note that Jenkins can only be run with Linux, not MacOSX/Windows)
+    bc.nodetype = "linux"
 
-// Add the build to the matrix
-matrix += bc0
+    // (Required) Execute a series of commands to set up the build
+    bc.build_cmds = [
+        "pip install pytest",
+        "python setup.py install",
+    ]
+
+    // (Optional) Execute a series of test commands
+    bc.test_cmds = [
+        "pytest fgscountrate/tests/ --junitxml=results.xml",
+        // Add a truly magical command that makes Jenkins work for Python 3.5
+        "sed -i 's/file=\"[^\"]*\"//g;s/line=\"[^\"]*\"//g;s/skips=\"[^\"]*\"//g' results.xml",
+    ]
+
+    // Add the build to the matrix
+    matrix += bc
+
+}
 
 // (Required) Submit the build configurations and execute them in parallel
 utils.run(matrix)
