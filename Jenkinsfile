@@ -38,9 +38,9 @@ for (python_ver in matrix_python) {
 
     // (Optional) Execute a series of test commands
     bc.test_cmds = [
-        "pytest fgscountrate/tests/ --junitxml=results.xml"
+        "pytest fgscountrate/tests/ --junitxml=results.xml",
         // Add a truly magical command that makes Jenkins work for Python 3.5
-        "sed -i 's/file=\"[^\"]*\"//g;s/line=\"[^\"]*\"//g;s/skips=\"[^\"]*\"//g' results.xml"
+        "sed -i 's/file=\"[^\"]*\"//g;s/line=\"[^\"]*\"//g;s/skips=\"[^\"]*\"//g' results.xml",
     ]
 
     // Add the build to the matrix
