@@ -33,7 +33,7 @@ for (python_ver in matrix_python) {
     // (Required) Execute a series of commands to set up the build
     bc.build_cmds = [
         "pip install pytest",
-        "python setup.py install",
+        "pyip install .",
     ]
 
     // (Optional) Execute a series of test commands
