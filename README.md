@@ -73,6 +73,17 @@ To get the data from the step by step calculations for the FGS countrate and mag
 fgs.band_dataframe
 ```
 
+Versioning
+----------
+This repository follows the principles of ["Semantic Versioning"](https://semver.org/), such that
+
+> Given a version number MAJOR.MINOR.PATCH, increment the:
+> 1. MAJOR version when you make incompatible API changes,
+> 2. MINOR version when you add functionality in a backwards compatible manner, and
+> 3. PATCH version when you make backwards compatible bug fixes.
+
+When releasing a new version, developers should change the version number in `setup.py`, merge this change in a PR, and then release the package via the GitHub interface.
+
 License
 -------
 
