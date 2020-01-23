@@ -6,16 +6,27 @@
 from ._astropy_init import *
 # ----------------------------------------------------------------------------
 
+import os
 import sys
-from pkg_resources import get_distribution, DistributionNotFound
+import pkg_resources
+
+module_path = pkg_resources.resource_filename('fgscountrate', '')
+setup_path = os.path.normpath(os.path.join(module_path, '../setup.py'))
 
 try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    # package is not installed
-    __version__ = "unknown"
+    with open(setup_path) as f:
+        data = f.readlines()
+
+    for line in data:
+        if 'VERSION =' in line:
+            __version__ = line.split(' ')[-1].replace("'", "").strip()
+
+except FileNotFoundError:
+    print('Could not determine fgscountrate version')
+    __version__ = '0.0.0'
 
 __minimum_python_version__ = "3.5"
+
 
 class UnsupportedPythonError(Exception):
     pass

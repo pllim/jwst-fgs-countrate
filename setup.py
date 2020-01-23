@@ -7,6 +7,8 @@ from __future__ import (absolute_import, division,
 
 from setuptools import setup, find_packages
 
+VERSION = '1.0.0'
+
 INSTALL_REQUIRES = [
     'numpy',
     'pytest',
@@ -16,7 +18,7 @@ INSTALL_REQUIRES = [
 ]
 
 setup(name='fgscountrate',
-      version='0.0',
+      version=VERSION,
       description='JWST FGS countrate estimation',
       long_description='JWST FGS countrate and magnitude estimation and related functionality.',
       classifiers=[
