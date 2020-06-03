@@ -127,7 +127,7 @@ class FGSCountrate:
         self.fgs_magnitude, self.fgs_magnitude_err = None, None
         self.band_dataframe = None
 
-    def query_fgs_countrate_magnitude(self):
+    def query_fgs_countrate_magnitude(self, data_frame=None):
         """
         Calculate the FGS countrate and magnitude values for a guide star
         based on it's ID. This calculation uses the following steps:
@@ -154,7 +154,8 @@ class FGSCountrate:
         """
 
         # Query GSC to get data on the guide star
-        data_frame = utils.query_gsc(gs_id=self.id, catalog='GSC241')
+        if data_frame is None:
+            data_frame = utils.query_gsc(gs_id=self.id, catalog='GSC241')
 
         # Check length of data table and turn it from a dataframe to a series
         if len(data_frame) == 1:
@@ -299,7 +300,7 @@ class FGSCountrate:
         # Add magnitudes
         df = pd.concat([df, band_series], axis=1, sort=True)
         df = df.rename(columns={0: 'Mag'})
-
+        
         # Sort to order of increasing wavelength
         df = df.sort_values(by=['Wavelength'])
 

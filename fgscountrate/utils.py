@@ -33,7 +33,13 @@ def convert_to_abmag(value, name):
         'FpgMag': 0.24,
         'NpgMag': 0.48,
     }
-
+    if isinstance(value, str): # Some of the values have extra '.'s so take care of it
+        print(f"Value for {name} is a string. Value={value}.")
+        if len(value.split('.')) > 2:
+            parts = value.split('.')
+            important_parts = parts[:2]
+            value = ('.').join(important_parts)
+        value = float(value)
     abmag = value + mag_constants[name]
 
     return abmag
