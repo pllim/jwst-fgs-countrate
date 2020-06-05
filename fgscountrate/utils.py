@@ -33,13 +33,7 @@ def convert_to_abmag(value, name):
         'FpgMag': 0.24,
         'NpgMag': 0.48,
     }
-    if isinstance(value, str): # Some of the values have extra '.'s so take care of it
-        print(f"Value for {name} is a string. Value={value}.")
-        if len(value.split('.')) > 2:
-            parts = value.split('.')
-            important_parts = parts[:2]
-            value = ('.').join(important_parts)
-        value = float(value)
+
     abmag = value + mag_constants[name]
 
     return abmag
@@ -131,8 +125,8 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
 
     # Read data into pandas
     try:
-        data_frame = pd.read_csv(io.StringIO(request.decode('utf-8')), skiprows=1)
-        data_frame.replace(r'^\s+$', -999, regex=True, inplace=True)
+        data_frame = pd.read_csv(io.StringIO(request.decode('utf-8')), skiprows=1, na_values=[' '])
+        #data_frame.replace(r'^\s+$', -999, regex=True, inplace=True)
     except pd.errors.EmptyDataError:
         raise NameError("No guide stars match these requirements in catalog {}".format(catalog))
 
