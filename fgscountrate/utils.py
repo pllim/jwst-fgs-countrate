@@ -1,5 +1,6 @@
 import io
 
+import numpy as np
 import pandas as pd
 import requests
 
@@ -37,7 +38,7 @@ def convert_to_abmag(value, name):
     abmag = value + mag_constants[name]
 
     return abmag
-
+#GSC2_and_2MASS_and_SDSS_RA273.19deg_Dec65.54deg
 
 def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra=None,
               mindec=None, maxdec=None, catalog=None):
@@ -126,7 +127,7 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     # Read data into pandas
     try:
         data_frame = pd.read_csv(io.StringIO(request.decode('utf-8')), skiprows=1, na_values=[' '])
-        #data_frame.replace(r'^\s+$', -999, regex=True, inplace=True)
+        data_frame.replace(np.nan, -999, regex=True, inplace=True)
     except pd.errors.EmptyDataError:
         raise NameError("No guide stars match these requirements in catalog {}".format(catalog))
 
