@@ -127,7 +127,7 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     # Read data into pandas
     try:
         data_frame = pd.read_csv(io.StringIO(request.decode('utf-8')), skiprows=1, na_values=[' '])
-        data_frame.replace(np.nan, -999, regex=True, inplace=True)
+        #data_frame.replace(np.nan, -999, regex=True, inplace=True)
     except pd.errors.EmptyDataError:
         raise NameError("No guide stars match these requirements in catalog {}".format(catalog))
 

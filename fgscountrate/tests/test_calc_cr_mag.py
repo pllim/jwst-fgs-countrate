@@ -21,7 +21,7 @@ def test_query_fgs_countrate_magnitude():
     cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
     assert cr > 0
     assert mag > 0
-    if any(i == -999 for i in fgs._all_queried_mag_series.values):
+    if any(np.isnan(i) for i in fgs._all_queried_mag_series.values): #i == -999
         warnings.warn('GS ID N13I000018 no longer behaves as originally expected. Test must be updated')
 
     # A case with missing all 3 tmass bands
@@ -32,7 +32,7 @@ def test_query_fgs_countrate_magnitude():
     assert any(fgs.band_dataframe.at[i, 'Signal'] > 0 for i in ['tmassJmag', 'tmassHmag', 'tmassKsMag'])
     assert cr > 0
     assert mag > 0
-    if any(i != -999 for i in fgs.gsc_series[['tmassJmag', 'tmassHmag', 'tmassKsMag']].values):
+    if any(~np.isnan(i) for i in fgs.gsc_series[['tmassJmag', 'tmassHmag', 'tmassKsMag']].values):
         warnings.warn('GS ID N94D006388 no longer behaves as originally expected. Test must be updated')
 
     # A case with missing uncertainty data
@@ -43,7 +43,7 @@ def test_query_fgs_countrate_magnitude():
     assert fgs.k_mag_err > 0  # this value should get reset
     assert cr > 0
     assert mag > 0
-    if fgs.gsc_series['tmassKsMagErr'] != -999:
+    if not np.isnan(fgs.gsc_series['tmassKsMagErr']):# != -999:
         warnings.warn('GS ID N13I018276 no longer behaves as originally expected. Test must be updated')
 
 
@@ -92,9 +92,9 @@ def test_gscbj_sdssg_missing():
 
     # Reset data to a set of constant, fake data with GSC_B_J and SDSS_g missing
     values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965,
-              -999, -999, 14.0877, 0.2927929, 13.7468, 0.239294,
+              np.nan, np.nan, 14.0877, 0.2927929, 13.7468, 0.239294,
               13.339, 0.0250000003, 12.993, 0.0270000007, 12.901, 0.0270000007,
-              15.78594, 0.005142, -999, -999, 14.27808, 0.003273380,
+              15.78594, 0.005142, np.nan, np.nan, 14.27808, 0.003273380,
               14.1443, 0.003414216, 14.1067, 0.00433389]
     index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
              'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
@@ -110,13 +110,13 @@ def test_gscbj_sdssg_missing():
     # Compute FGS countrate and magnitude to get fgs.band_dataframe attribute
     fgs.calc_fgs_cr_mag_and_err()
 
-    # Check Mag, ABMag, and Flux = -999 and Signal is set to 0 for both
-    assert fgs.band_dataframe.at['JpgMag', 'Mag'] == -999
-    assert fgs.band_dataframe.at['SDSSgMag', 'Mag'] == -999
-    assert fgs.band_dataframe.at['JpgMag', 'ABMag'] == -999
-    assert fgs.band_dataframe.at['SDSSgMag', 'ABMag'] == -999
-    assert fgs.band_dataframe.at['JpgMag', 'Flux'] == -999
-    assert fgs.band_dataframe.at['SDSSgMag', 'Flux'] == -999
+    # Check Mag, ABMag, and Flux = nan #-999 and Signal is set to 0 for both
+    assert np.isnan(fgs.band_dataframe.at['JpgMag', 'Mag'])# == -999
+    assert np.isnan(fgs.band_dataframe.at['SDSSgMag', 'Mag'])# == -999
+    assert np.isnan(fgs.band_dataframe.at['JpgMag', 'ABMag'])# == -999
+    assert np.isnan(fgs.band_dataframe.at['SDSSgMag', 'ABMag'])# == -999
+    assert np.isnan(fgs.band_dataframe.at['JpgMag', 'Flux'])# == -999
+    assert np.isnan(fgs.band_dataframe.at['SDSSgMag', 'Flux'])# == -999
     assert fgs.band_dataframe.at['JpgMag', 'Signal'] == 0.0
     assert fgs.band_dataframe.at['SDSSgMag', 'Signal'] == 0.0
 
@@ -133,7 +133,7 @@ def test_errors():
 
     fgs._present_calculated_mags = ['tmassJmag', 'tmassHmag', 'tmassKsMag']
     for index in set(fgscountrate.fgs_countrate_core.GSC_BAND_NAMES) - set(fgs._present_calculated_mags):
-        fgs.gsc_series.loc[index] = -999
+        fgs.gsc_series.loc[index] = np.nan #-999
     fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgscountrate.fgs_countrate_core.GSC_BAND_NAMES]
 
     with pytest.raises(ValueError) as excinfo:
