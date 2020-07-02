@@ -197,12 +197,12 @@ class FGSCountrate:
         self._all_queried_mag_series = data.loc[GSC_BAND_NAMES]
 
         # Pull magnitude errors for each band, and replace missing errors with 2.5% of the magnitude value
-        mag_err_list = [self.gsc_series[ind + 'Err'] if not np.isnan(self.gsc_series[ind + 'Err']) #!= -999
+        mag_err_list = [self.gsc_series[ind + 'Err'] if self.gsc_series[ind + 'Err'] != -999
                         else self._all_queried_mag_series[ind] * BAND_ERR for ind in self._all_queried_mag_series.index]
         self._all_queried_mag_err_series = pd.Series(mag_err_list, index=self._all_queried_mag_series.index + 'Err')
 
         # List of the magnitude names that are not fill values in the series
-        self._present_queried_mags = list(self._all_queried_mag_series[self._all_queried_mag_series != np.nan].index)# != -999
+        self._present_queried_mags = list(self._all_queried_mag_series[self._all_queried_mag_series != -999].index)
 
         # Dictionary of convert methods
         method_list = []
@@ -300,7 +300,7 @@ class FGSCountrate:
         # Add magnitudes
         df = pd.concat([df, band_series], axis=1, sort=True)
         df = df.rename(columns={0: 'Mag'})
-
+        
         # Sort to order of increasing wavelength
         df = df.sort_values(by=['Wavelength'])
 
@@ -309,16 +309,16 @@ class FGSCountrate:
             if row.name in self._present_calculated_mags:
                 return utils.convert_to_abmag(row['Mag'], row.name)
             else:
-                return np.nan #-999
+                return -999
 
         df['ABMag'] = df.apply(lambda row: ab_mag(row), axis=1)
 
         # Convert AB mag to flux (photons/s/m**2/micron)
         def calc_flux(row):
-            if not np.isnan(row['ABMag']): # != -999:
+            if row['ABMag'] != -999:
                 return 10.0 ** (-(row['ABMag'] + 48.6) / 2.5) * (1.0e4 / (PLANCK * row['Wavelength']))
             else:
-                return np.nan #-999
+                return -999
 
         df['Flux'] = df.apply(lambda row: calc_flux(row), axis=1)
 
@@ -337,10 +337,10 @@ class FGSCountrate:
 
         # Compute number of photons reaching the FGS-Guider detector per second per micron.
         def calc_signal(row):
-            if not np.isnan(row['Flux']):# != -999:
+            if row['Flux'] != -999:
                 return row['Flux'] * row['Throughput'] * 25
             else:
-                return np.nan#-999
+                return -999
 
         df['Signal'] = df.apply(lambda row: calc_signal(row), axis=1)
 
@@ -350,13 +350,13 @@ class FGSCountrate:
                              'data'.format(self.id))
 
         # Reset the shortest/2nd shortest bands to 0 if they are missing
-        if np.isnan(df.at['JpgMag', 'Signal']):# == -999:
+        if df.at['JpgMag', 'Signal'] == -999:
             df.at['JpgMag', 'Signal'] = 0
-        if np.isnan(df.at['SDSSgMag', 'Signal']):# == -999:
+        if df.at['SDSSgMag', 'Signal'] == -999:
             df.at['SDSSgMag', 'Signal'] = 0
 
         # Throw out any bands for which you don't have data
-        df_short = df[~np.isnan(df['Signal'])] # != -999
+        df_short = df[df['Signal'] != -999]
 
         # Integrate flux in photons per second per micron over the FGS-Guider wavelength range. Use trapezoid formula.
         trapezoid = np.zeros(len(df_short) - 1)

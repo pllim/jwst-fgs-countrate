@@ -51,7 +51,7 @@ def test_convert_mag_to_jhk():
             delete_list = list(set(full_list) - set(subset))
             data2 = copy.copy(fgs.gsc_series)
             for i in delete_list:
-                data2[i] = np.nan#-999
+                data2[i] = -999
             try:
                 fgs.calc_jhk_mag(data=data2)
                 error = False
