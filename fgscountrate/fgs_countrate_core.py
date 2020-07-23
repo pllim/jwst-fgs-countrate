@@ -476,7 +476,7 @@ class FGSCountrate:
         mag_err_list.append(self.fgs_magnitude * 0.05)
 
         # Combine Error
-        self.fgs_countrate_err = np.sqrt(np.sum(i**2 for i in cr_err_list))
-        self.fgs_magnitude_err = np.sqrt(np.sum(i**2 for i in mag_err_list))
+        self.fgs_countrate_err = np.sqrt(sum(i**2 for i in cr_err_list))
+        self.fgs_magnitude_err = np.sqrt(sum(i**2 for i in mag_err_list))
 
         return self.fgs_countrate, self.fgs_countrate_err, self.fgs_magnitude, self.fgs_magnitude_err
