@@ -39,6 +39,7 @@ def convert_to_abmag(value, name):
 
     return abmag
 
+
 def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra=None,
               mindec=None, maxdec=None, catalog=None):
     """
