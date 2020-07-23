@@ -38,7 +38,6 @@ def convert_to_abmag(value, name):
     abmag = value + mag_constants[name]
 
     return abmag
-#GSC2_and_2MASS_and_SDSS_RA273.19deg_Dec65.54deg
 
 def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra=None,
               mindec=None, maxdec=None, catalog=None):
