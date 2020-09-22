@@ -101,6 +101,65 @@ def test_convert_mag_to_jhk():
                 assert 'cannot_convert_to_jhk' in method_names
 
 
+testdata = [
+    (15, 15, 15, 25, 25, 25, 'convert_tmass_to_jhk', 'convert_tmass_to_jhk', 'convert_tmass_to_jhk'),
+    (-999, -999, -999, 25, 15, 15, 'convert_sdssiz_to_jhk', 'convert_sdssiz_to_jhk', 'convert_sdssiz_to_jhk'),
+]
+ids = ['tmass conversion with faint sdss', 'sdss-zi conversion because of faint g-band']
+@pytest.mark.parametrize("jmag, hmag, kmag, gmag, zmag, imag, convert_j, convert_h, convert_k", testdata, ids=ids)
+def test_check_band_below_faint_limits_pass(jmag, hmag, kmag, gmag, zmag, imag, convert_j, convert_h, convert_k):
+    """
+    Test that the checking of faint bands will in certain cases have the code
+    choose a conversion method that is not the "best" case conversion because
+    of the existense of faint stars.
+    """
+    # Edit base data for specific test
+    data = copy.copy(BASE_DATA)
+    data['tmassJmag'] = jmag
+    data['tmassHmag'] = hmag
+    data['tmassKsMag'] = kmag
+    data['SDSSgMag'] = gmag
+    data['SDSSzMag'] = zmag
+    data['SDSSiMag'] = imag
+    data['JpgMag'] = -999
+    data['FpgMag'] = -999
+    data['NpgMag'] = -999
+
+    fgs = FGSCountrate(guide_star_id="N13I000018", guider=1)
+    fgs.calc_jhk_mag(data)
+
+    assert fgs.j_convert_method == convert_j
+    assert fgs.h_convert_method == convert_h
+    assert fgs.k_convert_method == convert_k
+
+
+def test_check_band_below_faint_limits_failure():
+    """
+    Check that if you have 1 catalog and 2+ bands below the faint limit,
+    you cannot calculate the JHK bands and thus the magnitude. This should
+    raise an error. This case is that you have only SDSS data, and 2 of the
+    3 bands are below the faint limit.
+    """
+    # Edit base data for specific test
+    data = copy.copy(BASE_DATA)
+    data['tmassJmag'] = -999
+    data['tmassHmag'] = -999
+    data['tmassKsMag'] = -999
+    data['SDSSgMag'] = 25
+    data['SDSSzMag'] = 25
+    data['SDSSiMag'] = 15
+    data['JpgMag'] = -999
+    data['FpgMag'] = -999
+    data['NpgMag'] = -999
+
+    fgs = FGSCountrate(guide_star_id="N13I000018", guider=1)
+
+    with pytest.raises(Exception) as e_info:
+        fgs.calc_jhk_mag(data)
+    assert 'There is not enough information on this guide star' in str(e_info.value)
+    assert 'tmassJmag' in str(e_info.value)
+
+
 def test_tmass_to_jhk():
     """
     Check the _tmass_to_jhk method produces the expected result
