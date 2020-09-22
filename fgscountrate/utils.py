@@ -132,3 +132,39 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
         raise NameError("No guide stars match these requirements in catalog {}".format(catalog))
 
     return data_frame
+
+
+def check_band_below_faint_limits(bands, mags):
+    """
+    Check if a star's magnitude for a certain band is below the the
+    faint limit for that band.
+
+    Parameters
+    ----------
+    bands : str or list
+        Band(s) to check (e.g. ['SDSSgMag', 'SDSSiMag'].
+    mags : str or list
+        Magnitude(s) of the band(s) corresponding to the band(s) in the
+        bands variable
+
+    Returns
+    -------
+    bool : True if the band if below the faint limit. False if it is not
+    """
+
+    if isinstance(bands, str):
+        bands = [bands]
+    if isinstance(mags, str):
+        mags = [mags]
+
+    for band, mag in zip(bands, mags):
+        if 'SDSSgMag' in band and mag >= 24:
+            return True
+        elif 'SDSSrMag' in band and mag >= 24:
+            return True
+        elif 'SDSSiMag' in band and mag >= 23:
+            return True
+        elif 'SDSSzMag' in band and mag >= 22:
+            return True
+
+    return False

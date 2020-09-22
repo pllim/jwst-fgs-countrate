@@ -165,7 +165,7 @@ class FGSCountrate:
 
         # Convert to JHK magnitudes
         self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err = \
-            self.calc_jhk_mag(self.gsc_series)
+            self.calc_jhk_mag()
 
         # Compute FGS countrate and magnitude
         self.fgs_countrate, self.fgs_countrate_err, \
@@ -173,17 +173,18 @@ class FGSCountrate:
 
         return self.fgs_countrate, self.fgs_countrate_err, self.fgs_magnitude, self.fgs_magnitude_err
 
-    def calc_jhk_mag(self, data):
+    def calc_jhk_mag(self, data=None):
         """
         Calculate the J, H, and K magnitudes of the input data
 
         Parameters
         ----------
-        data : pandas series
+        data : pandas series, optional
             A pd series containing at least the following bands:
             GSC2: JpgMag, FpgMag, NpgMag
             2MASS: tmassJmag, tmassHmag, tmassKsMag
             SDSS: SDSSgMag, SDSSiMag, SDSSzMag
+            If not passed, will use self.gsc_series
 
         Returns
         -------
@@ -194,7 +195,10 @@ class FGSCountrate:
         """
 
         # Pull all the magnitudes from the series
-        self._all_queried_mag_series = data.loc[GSC_BAND_NAMES]
+        if data is not None:
+            self.gsc_series = data
+
+        self._all_queried_mag_series = self.gsc_series.loc[GSC_BAND_NAMES]
 
         # Pull magnitude errors for each band, and replace missing errors with 2.5% of the magnitude value
         mag_err_list = [self.gsc_series[ind + 'Err'] if self.gsc_series[ind + 'Err'] != -999
@@ -220,9 +224,18 @@ class FGSCountrate:
             # Pull the first entry in the OrderedDict that matches what values are present.
             for key, value in switcher.items():
                 key_list = key.split(', ')
+
                 if set(key_list).issubset(self._present_queried_mags):
+
+                    # Check for faint star limits
+                    mags = self._all_queried_mag_series[key_list].values
+                    if utils.check_band_below_faint_limits(key_list, mags):
+                        continue
+
+                    # Set the conversion method
                     setattr(self, '{}_convert_method'.format(i[5].lower()), value)
                     break
+
             if getattr(self, '{}_convert_method'.format(i[5].lower())) is None:
                 raise ValueError('There is not enough information on this guide star to get its {} magnitude'.format(i))
 
@@ -299,7 +312,7 @@ class FGSCountrate:
 
         # Add magnitudes
         df = pd.concat([df, band_series], axis=1, sort=True)
-        df = df.rename(columns={0: 'Mag'})
+        df.columns = ['Wavelength', 'Mag']
         
         # Sort to order of increasing wavelength
         df = df.sort_values(by=['Wavelength'])
