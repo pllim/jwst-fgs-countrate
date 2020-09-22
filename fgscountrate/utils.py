@@ -145,7 +145,7 @@ def check_band_below_faint_limits(bands, mags):
         Band(s) to check (e.g. ['SDSSgMag', 'SDSSiMag'].
     mags : str or list
         Magnitude(s) of the band(s) corresponding to the band(s) in the
-        band svariable
+        bands variable
 
     Returns
     -------
