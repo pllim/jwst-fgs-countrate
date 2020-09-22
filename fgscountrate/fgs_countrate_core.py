@@ -165,7 +165,7 @@ class FGSCountrate:
 
         # Convert to JHK magnitudes
         self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err = \
-            self.calc_jhk_mag(self.gsc_series)
+            self.calc_jhk_mag()
 
         # Compute FGS countrate and magnitude
         self.fgs_countrate, self.fgs_countrate_err, \
@@ -173,17 +173,18 @@ class FGSCountrate:
 
         return self.fgs_countrate, self.fgs_countrate_err, self.fgs_magnitude, self.fgs_magnitude_err
 
-    def calc_jhk_mag(self, data):
+    def calc_jhk_mag(self, data=None):
         """
         Calculate the J, H, and K magnitudes of the input data
 
         Parameters
         ----------
-        data : pandas series
+        data : pandas series, optional
             A pd series containing at least the following bands:
             GSC2: JpgMag, FpgMag, NpgMag
             2MASS: tmassJmag, tmassHmag, tmassKsMag
             SDSS: SDSSgMag, SDSSiMag, SDSSzMag
+            If not passed, will use self.gsc_series
 
         Returns
         -------
@@ -194,7 +195,10 @@ class FGSCountrate:
         """
 
         # Pull all the magnitudes from the series
-        self._all_queried_mag_series = data.loc[GSC_BAND_NAMES]
+        if data is not None:
+            self.gsc_series = data
+
+        self._all_queried_mag_series = self.gsc_series.loc[GSC_BAND_NAMES]
 
         # Pull magnitude errors for each band, and replace missing errors with 2.5% of the magnitude value
         mag_err_list = [self.gsc_series[ind + 'Err'] if self.gsc_series[ind + 'Err'] != -999
