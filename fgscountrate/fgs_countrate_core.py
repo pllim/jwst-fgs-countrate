@@ -224,9 +224,18 @@ class FGSCountrate:
             # Pull the first entry in the OrderedDict that matches what values are present.
             for key, value in switcher.items():
                 key_list = key.split(', ')
+
                 if set(key_list).issubset(self._present_queried_mags):
+
+                    # Check for faint star limits
+                    mags = self._all_queried_mag_series[key_list].values
+                    if utils.check_band_below_faint_limits(key_list, mags):
+                        continue
+
+                    # Set the conversion method
                     setattr(self, '{}_convert_method'.format(i[5].lower()), value)
                     break
+
             if getattr(self, '{}_convert_method'.format(i[5].lower())) is None:
                 raise ValueError('There is not enough information on this guide star to get its {} magnitude'.format(i))
 
@@ -303,7 +312,7 @@ class FGSCountrate:
 
         # Add magnitudes
         df = pd.concat([df, band_series], axis=1, sort=True)
-        df = df.rename(columns={0: 'Mag'})
+        df.columns = ['Wavelength', 'Mag']
         
         # Sort to order of increasing wavelength
         df = df.sort_values(by=['Wavelength'])
