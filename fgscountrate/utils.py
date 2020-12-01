@@ -78,7 +78,7 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
         Call GSC240 to access GSC2.4.0
         Call GSC241 to access GSC2.4.1.1
         Call GSC2412 to access GSC2.4.1.2
-        Call GSC2420 to access GSC2.4.2
+        Call GSC242 to access GSC2.4.2
 
     Returns
     -------
@@ -91,7 +91,7 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     # Set file format and default catalog
     file_format = 'CSV'
     if catalog is None:
-        catalog = 'GSC241'
+        catalog = 'GSC242'
 
     # Check only 1 coordinate specification is being used AND the coordinate specification chosen is complete
     method_list = [any([gs_id]), any([ra, dec, cone_radius]), any([minra, maxra, mindec, maxdec])]

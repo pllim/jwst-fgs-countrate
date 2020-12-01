@@ -9,7 +9,7 @@ from fgscountrate import utils
 def test_successful_query():
     """Test a query that should be successful"""
     gs_id = 'N13I000018'
-    dataframe = utils.query_gsc(gs_id=gs_id, catalog='GSC241')
+    dataframe = utils.query_gsc(gs_id=gs_id, catalog='GSC242')
 
     assert len(dataframe) == 1
 
@@ -37,7 +37,7 @@ def test_fake_guidestar_id():
     # Check an input guide star ID that isn't found
     with pytest.raises(NameError) as excinfo:
         gs_id = 'fakeid'
-        utils.query_gsc(gs_id=gs_id, catalog='GSC241')
+        utils.query_gsc(gs_id=gs_id, catalog='GSC242')
     assert 'No guide stars match' in str(excinfo.value), 'Fake Guide Star ID incorrectly found in catalog'
 
 
@@ -52,8 +52,8 @@ def test_coordinate_combinations():
 
     input_dict = {
         'gs_id': 'N13I000018',
-        'ra': 273.206729760604,
-        'dec': 65.53351493597,
+        'ra': 273.206729584718,
+        'dec': 65.5335161247318,
         'cone_radius': 0.1,
         'minra': 273.2,
         'maxra': 273.21,
@@ -70,9 +70,10 @@ def test_coordinate_combinations():
                                    set(['minra', 'maxra', 'mindec', 'maxdec'])]:
                 with pytest.raises(ValueError):
                     subset_dict = dict((k, input_dict[k]) for k in subset)
-                    utils.query_gsc(**subset_dict, catalog='GSC241')
+                    utils.query_gsc(**subset_dict, catalog='GSC242')
 
             # Check that the remaining combinations should successfully run
             else:
+                print(subset)
                 subset_dict = dict((k, input_dict[k]) for k in subset)
-                utils.query_gsc(**subset_dict, catalog='GSC241')
+                utils.query_gsc(**subset_dict, catalog='GSC242')
