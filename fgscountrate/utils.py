@@ -73,7 +73,7 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     maxdec : float
         Maximum declination in degrees for box search.
     catalog : str
-        There are 5 different GSC2 versions available. Default is GSC241
+        There are 5 different GSC2 versions available. Default is GSC 2.4.2
         Call GSC23 to access GSC2.3.4
         Call GSC240 to access GSC2.4.0
         Call GSC241 to access GSC2.4.1.1

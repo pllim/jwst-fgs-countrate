@@ -161,7 +161,7 @@ def test_errors():
 
     # Test 1: data only includes 2MASS
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC241').iloc[0]
+    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC242').iloc[0]
 
     fgs._present_calculated_mags = ['tmassJmag', 'tmassHmag', 'tmassKsMag']
     for index in set(fgscountrate.fgs_countrate_core.GSC_BAND_NAMES) - set(fgs._present_calculated_mags):
@@ -176,7 +176,7 @@ def test_errors():
     # Test 2: Guider number is invalid
     guider = 3
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC241').iloc[0]
+    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC242').iloc[0]
 
     with pytest.raises(ValueError) as excinfo:
         fgs.calc_fgs_cr_mag_and_err()
@@ -192,7 +192,7 @@ def test_output_options():
     gs_id = 'N13I000018'
     guider = 2
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC241').iloc[0]
+    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC242').iloc[0]
     fgs._present_calculated_mags = fgscountrate.fgs_countrate_core.GSC_BAND_NAMES
     fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgs._present_calculated_mags]
     mag_err_list = [fgs.gsc_series[ind + 'Err'] for ind in fgs._all_calculated_mag_series.index]

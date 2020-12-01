@@ -155,7 +155,7 @@ class FGSCountrate:
 
         # Query GSC to get data on the guide star
         if data_frame is None:
-            data_frame = utils.query_gsc(gs_id=self.id, catalog='GSC241')
+            data_frame = utils.query_gsc(gs_id=self.id, catalog='GSC242')
 
         # Check length of data table and turn it from a dataframe to a series
         if len(data_frame) == 1:
