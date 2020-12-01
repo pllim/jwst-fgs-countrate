@@ -372,13 +372,7 @@ class FGSCountrate:
         df_short = df[df['Signal'] != -999]
 
         # Integrate flux in photons per second per micron over the FGS-Guider wavelength range. Use trapezoid formula.
-        trapezoid = np.zeros(len(df_short) - 1)
-        for i in range(len(trapezoid)):
-            trapezoid[i] = (df_short.at[df_short.index[i + 1], "Wavelength"] -
-                            df_short.at[df_short.index[i], "Wavelength"]) * \
-                           (df_short.at[df_short.index[i], "Signal"] +
-                            df_short.at[df_short.index[i + 1], "Signal"]) / 2.0
-        electrons = np.sum(trapezoid)
+        electrons = utils.trapezoid_sum(df_short, 'Signal')
 
         # Compute FGS countrate using conversion of # electrons => 1 count
         fgs_countrate = electrons / guider_gain
@@ -387,14 +381,7 @@ class FGSCountrate:
             to_return.append(fgs_countrate)
 
         # Compute FGS magnitude
-        trap2 = np.zeros(len(df_short) - 1)
-        for i in range(len(trap2)):
-            trap2[i] = (df_short.at[df_short.index[i + 1], "Wavelength"] -
-                        df_short.at[df_short.index[i], "Wavelength"]) * \
-                       (df_short.at[df_short.index[i], "Throughput"] +
-                        df_short.at[df_short.index[i + 1], "Throughput"]) / 2.0
-
-        sum_throughput = np.sum(trap2)
+        sum_throughput = utils.trapezoid_sum(df_short, 'Throughput')
 
         if self.guider == 1:
             mag_conversion = MAG_CONVERSION_G1
@@ -489,7 +476,9 @@ class FGSCountrate:
         return self.fgs_countrate, self.fgs_countrate_err, self.fgs_magnitude, self.fgs_magnitude_err
 
 
-def convert_cr_to_mag(fgs_countrate, guider):
+# Stand Alone Functions
+# ---------------------
+def convert_cr_to_fgs_mag(fgs_countrate, guider):
     """
     Convert count rate to FGS magnitude.
 
@@ -500,23 +489,28 @@ def convert_cr_to_mag(fgs_countrate, guider):
     """
     if guider == 1:
         cr_conversion = CR_CONVERSION_G1
-        sum_throughput = _sum_throughput(guider=1)
+        throughput = THROUGHPUT_G1
         mag_conversion = MAG_CONVERSION_G1
     elif guider == 2:
         cr_conversion = CR_CONVERSION_G2
-        sum_throughput = _sum_throughput(guider=2)
+        throughput = THROUGHPUT_G2
         mag_conversion = MAG_CONVERSION_G2
     else:
         raise ValueError('{} not a valid number for guider'.format(guider))
 
+    df = pd.DataFrame(throughput.items(), index=np.arange(len(throughput)), columns=['Wavelength', 'Throughput'])
+    sum_throughput = utils.trapezoid_sum(df, 'Throughput')
     fgs_magnitude = -2.5 * np.log10(fgs_countrate * cr_conversion / sum_throughput) + mag_conversion
+
     return fgs_magnitude
 
 
-def convert_mag_to_cr(fgs_magnitude, guider):
+def convert_fgs_mag_to_cr(fgs_magnitude, guider):
     """
     Convert FGS magnitude to count rate.
 
+    Parameters
+    ----------
     fgs_magnitude : float
         FGS magnitude you want to convert into a count rate
     guider : int
@@ -524,37 +518,17 @@ def convert_mag_to_cr(fgs_magnitude, guider):
     """
     if guider == 1:
         cr_conversion = CR_CONVERSION_G1
-        sum_throughput = _sum_throughput(guider=1)
+        throughput = THROUGHPUT_G1
         mag_conversion = MAG_CONVERSION_G1
     elif guider == 2:
         cr_conversion = CR_CONVERSION_G2
-        sum_throughput = _sum_throughput(guider=2)
+        throughput = THROUGHPUT_G2
         mag_conversion = MAG_CONVERSION_G2
     else:
         raise ValueError('{} not a valid number for guider'.format(guider))
 
-    fgs_countrate = 10 ** ((mag_conversion + 2.5 * np.log(sum_throughput / cr_conversion) - fgs_magnitude) / 2.5)
+    df = pd.DataFrame(throughput.items(), index=np.arange(len(throughput)), columns=['Wavelength', 'Throughput'])
+    sum_throughput = utils.trapezoid_sum(df, 'Throughput')
+    fgs_countrate = 10 ** ((mag_conversion + 2.5 * np.log10(sum_throughput / cr_conversion) - fgs_magnitude) / 2.5)
+
     return fgs_countrate
-
-
-def _sum_throughput(guider):
-    """Sum the throughput for a guider"""
-    if guider == 1:
-        throughput = THROUGHPUT_G1
-    elif guider == 2:
-        throughput = THROUGHPUT_G2
-    else:
-        raise ValueError('{} not a valid number for guider'.format(guider))
-
-    df_short = pd.DataFrame(throughput.items(), index=np.arange(len(throughput)), columns=['Wavelength', 'Throughput'])
-    length = len(df_short) - 1
-    trap2 = np.zeros(length)
-    for i in range(length):
-        trap2[i] = (df_short.at[df_short.index[i + 1], "Wavelength"] -
-                    df_short.at[df_short.index[i], "Wavelength"]) * \
-                   (df_short.at[df_short.index[i], "Throughput"] +
-                    df_short.at[df_short.index[i + 1], "Throughput"]) / 2.0
-
-    sum_throughput = np.sum(trap2)
-
-    return sum_throughput

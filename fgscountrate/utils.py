@@ -168,3 +168,27 @@ def check_band_below_faint_limits(bands, mags):
             return True
 
     return False
+
+
+def trapezoid_sum(df, col):
+    """
+    Sum across a dataframe of values using a
+    trapezoid method
+
+    Parameters
+    ----------
+    df : Pandas Dataframe
+        Dataframe with columns "Wavelength" and
+        parameter col
+    col : str
+        Name of the column to sum over
+    """
+    length = len(df) - 1
+    trap = np.zeros(length)
+    for i in range(length):
+        trap[i] = (df.at[df.index[i + 1], "Wavelength"] -
+                   df.at[df.index[i], "Wavelength"]) * \
+                   (df.at[df.index[i], col] +
+                    df.at[df.index[i + 1], col]) / 2.0
+
+    return np.sum(trap)
