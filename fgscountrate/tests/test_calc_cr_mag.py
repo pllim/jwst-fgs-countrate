@@ -7,6 +7,7 @@ import pytest
 import fgscountrate
 from fgscountrate.fgs_countrate_core import FGSCountrate
 
+
 test_query_fgs_countrate_magnitude_parameters = ['GSC242', 'GSC241']
 @pytest.mark.parametrize('gsc', test_query_fgs_countrate_magnitude_parameters)
 def test_query_fgs_countrate_magnitude(gsc):

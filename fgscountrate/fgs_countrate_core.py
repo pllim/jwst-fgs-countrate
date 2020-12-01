@@ -489,16 +489,9 @@ def convert_cr_to_fgs_mag(fgs_countrate, guider):
     guider : int
         The guider number, either 1 or 2
     """
-    if guider == 1:
-        cr_conversion = CR_CONVERSION_G1
-        throughput = THROUGHPUT_G1
-        mag_conversion = MAG_CONVERSION_G1
-    elif guider == 2:
-        cr_conversion = CR_CONVERSION_G2
-        throughput = THROUGHPUT_G2
-        mag_conversion = MAG_CONVERSION_G2
-    else:
-        raise ValueError('{} not a valid number for guider'.format(guider))
+    cr_conversion = globals()['CR_CONVERSION_G{}'.format(guider)]
+    throughput = globals()['THROUGHPUT_G{}'.format(guider)]
+    mag_conversion = globals()['MAG_CONVERSION_G{}'.format(guider)]
 
     df = pd.DataFrame(throughput.items(), index=np.arange(len(throughput)), columns=['Wavelength', 'Throughput'])
     sum_throughput = utils.trapezoid_sum(df, 'Throughput')
@@ -518,16 +511,9 @@ def convert_fgs_mag_to_cr(fgs_magnitude, guider):
     guider : int
         The guider number, either 1 or 2
     """
-    if guider == 1:
-        cr_conversion = CR_CONVERSION_G1
-        throughput = THROUGHPUT_G1
-        mag_conversion = MAG_CONVERSION_G1
-    elif guider == 2:
-        cr_conversion = CR_CONVERSION_G2
-        throughput = THROUGHPUT_G2
-        mag_conversion = MAG_CONVERSION_G2
-    else:
-        raise ValueError('{} not a valid number for guider'.format(guider))
+    cr_conversion = globals()['CR_CONVERSION_G{}'.format(guider)]
+    throughput = globals()['THROUGHPUT_G{}'.format(guider)]
+    mag_conversion = globals()['MAG_CONVERSION_G{}'.format(guider)]
 
     df = pd.DataFrame(throughput.items(), index=np.arange(len(throughput)), columns=['Wavelength', 'Throughput'])
     sum_throughput = utils.trapezoid_sum(df, 'Throughput')
