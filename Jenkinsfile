@@ -13,7 +13,7 @@ if (utils.scm_checkout()) return
 matrix = []
 
 // Establish variables for the matrix
-matrix_python = ["3.5", "3.6", "3.7"]
+matrix_python = ["3.6", "3.7", "3.8"]
 
 for (python_ver in matrix_python) {
 
