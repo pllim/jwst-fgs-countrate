@@ -387,20 +387,13 @@ class FGSCountrate:
             to_return.append(fgs_countrate)
 
         # Compute FGS magnitude
-        length = len(df_short) - 1
-        trap1 = np.zeros(length)
-        trap2 = np.zeros(length)
-        for i in range(length):
-            trap1[i] = (df_short.at[df_short.index[i + 1], "Wavelength"] -
-                        df_short.at[df_short.index[i], "Wavelength"]) * \
-                       (df_short.at[df_short.index[i], "Signal"] +
-                        df_short.at[df_short.index[i + 1], "Signal"]) / 2.0
+        trap2 = np.zeros(len(df_short) - 1)
+        for i in range(len(trap2)):
             trap2[i] = (df_short.at[df_short.index[i + 1], "Wavelength"] -
                         df_short.at[df_short.index[i], "Wavelength"]) * \
                        (df_short.at[df_short.index[i], "Throughput"] +
                         df_short.at[df_short.index[i + 1], "Throughput"]) / 2.0
 
-        sum_signal = np.sum(trap1)
         sum_throughput = np.sum(trap2)
 
         if self.guider == 1:
@@ -410,7 +403,7 @@ class FGSCountrate:
         else:
             raise ValueError("Guider value must be an integer either 1 or 2")
 
-        fgs_magnitude = -2.5 * np.log10(sum_signal / sum_throughput) + mag_conversion
+        fgs_magnitude = -2.5 * np.log10(electrons / sum_throughput) + mag_conversion
 
         if to_compute.lower() == 'magnitude' or to_compute.lower() == 'both':
             to_return.append(fgs_magnitude)
@@ -494,3 +487,74 @@ class FGSCountrate:
         self.fgs_magnitude_err = np.sqrt(sum(i**2 for i in mag_err_list))
 
         return self.fgs_countrate, self.fgs_countrate_err, self.fgs_magnitude, self.fgs_magnitude_err
+
+
+def convert_cr_to_mag(fgs_countrate, guider):
+    """
+    Convert count rate to FGS magnitude.
+
+    fgs_countrate : float
+        Count rate you want to convert into an FGS magnitude
+    guider : int
+        The guider number, either 1 or 2
+    """
+    if guider == 1:
+        cr_conversion = CR_CONVERSION_G1
+        sum_throughput = _sum_throughput(guider=1)
+        mag_conversion = MAG_CONVERSION_G1
+    elif guider == 2:
+        cr_conversion = CR_CONVERSION_G2
+        sum_throughput = _sum_throughput(guider=2)
+        mag_conversion = MAG_CONVERSION_G2
+    else:
+        raise ValueError('{} not a valid number for guider'.format(guider))
+
+    fgs_magnitude = -2.5 * np.log10(fgs_countrate * cr_conversion / sum_throughput) + mag_conversion
+    return fgs_magnitude
+
+
+def convert_mag_to_cr(fgs_magnitude, guider):
+    """
+    Convert FGS magnitude to count rate.
+
+    fgs_magnitude : float
+        FGS magnitude you want to convert into a count rate
+    guider : int
+        The guider number, either 1 or 2
+    """
+    if guider == 1:
+        cr_conversion = CR_CONVERSION_G1
+        sum_throughput = _sum_throughput(guider=1)
+        mag_conversion = MAG_CONVERSION_G1
+    elif guider == 2:
+        cr_conversion = CR_CONVERSION_G2
+        sum_throughput = _sum_throughput(guider=2)
+        mag_conversion = MAG_CONVERSION_G2
+    else:
+        raise ValueError('{} not a valid number for guider'.format(guider))
+
+    fgs_countrate = 10 ** ((mag_conversion + 2.5 * np.log(sum_throughput / cr_conversion) - fgs_magnitude) / 2.5)
+    return fgs_countrate
+
+
+def _sum_throughput(guider):
+    """Sum the throughput for a guider"""
+    if guider == 1:
+        throughput = THROUGHPUT_G1
+    elif guider == 2:
+        throughput = THROUGHPUT_G2
+    else:
+        raise ValueError('{} not a valid number for guider'.format(guider))
+
+    df_short = pd.DataFrame(throughput.items(), index=np.arange(len(throughput)), columns=['Wavelength', 'Throughput'])
+    length = len(df_short) - 1
+    trap2 = np.zeros(length)
+    for i in range(length):
+        trap2[i] = (df_short.at[df_short.index[i + 1], "Wavelength"] -
+                    df_short.at[df_short.index[i], "Wavelength"]) * \
+                   (df_short.at[df_short.index[i], "Throughput"] +
+                    df_short.at[df_short.index[i + 1], "Throughput"]) / 2.0
+
+    sum_throughput = np.sum(trap2)
+
+    return sum_throughput

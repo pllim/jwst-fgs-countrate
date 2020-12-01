@@ -58,11 +58,13 @@ def test_compute_countrate_magnitude():
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
 
     # Reset data to a set of constant, fake data
-    values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965,
-              14.9447, 0.285722, 14.0877, 0.2927929, 13.7468, 0.239294,
-              13.339, 0.0250000003, 12.993, 0.0270000007, 12.901, 0.0270000007,
-              15.78594, 0.005142, 14.6547, 0.003211281, 14.27808, 0.003273380,
-              14.1443, 0.003414216, 14.1067, 0.00433389]
+    values = ['N13I000018 ', 420900912, 273.206729760604, 65.5335149359777,
+               8.3030233068735e-05, 0.000185964552890292, 14.9447, 0.285722,
+               14.0877, 0.29279299999999997, 13.7468, 0.239294, 13.33899974823,
+               0.025000000372529, 12.9930000305176, 0.0270000007003546,
+               12.9010000228882, 0.0270000007003546, 15.78594, 0.005142466,
+               14.654670000000001, 0.003211281, 14.27808, 0.0032733809999999997,
+               14.14432, 0.003414216, 14.106670000000001, 0.00433389]
     index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
              'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
              'tmassJmag', 'tmassJmagErr', 'tmassHmag', 'tmassHmagErr', 'tmassKsMag', 'tmassKsMagErr',
@@ -79,8 +81,28 @@ def test_compute_countrate_magnitude():
 
     assert pytest.approx(cr, 1777234.5129574337, 5)
     assert pytest.approx(cr_err, 154340.24919027157, 5)
-    assert pytest.approx(mag, -39.77243568524769, 5)
-    assert pytest.approx(mag_err, 1.9887037388556956, 5)
+    assert pytest.approx(mag, 13.310964314752303, 5)
+    assert pytest.approx(mag_err, 0.6657930516063038, 5)
+
+
+def test_convert_cr_to_mag():
+    """Test count rate to magnitude conversion helper function"""
+    countrate = 1777234.5129574337
+    expected_mag = 13.310964314752303
+
+    mag = fgscountrate.convert_cr_to_mag(countrate, guider=1)
+
+    assert pytest.approx(mag, expected_mag, 5)
+
+
+def test_convert_mag_to_cr():
+    """Test magnitude to count rate conversion helper function"""
+    magnitude = 13.310964314752303
+    expected_cr = 1777234.5129574337
+
+    cr = fgscountrate.convert_mag_to_cr(magnitude, guider=1)
+
+    assert pytest.approx(cr, expected_cr, 5)
 
 
 def test_gscbj_sdssg_missing():
