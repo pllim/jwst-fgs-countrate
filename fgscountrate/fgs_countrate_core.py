@@ -25,7 +25,7 @@ from . import utils
 PLANCK = 6.625e-27
 
 # GSC Band Information
-GSC_BAND_NAMES = ['tmassJmag', 'tmassHmag', 'tmassKsMag',
+GSC_BAND_NAMES = ['tmassJMag', 'tmassHMag', 'tmassKsMag',
                   'SDSSuMag', 'SDSSgMag', 'SDSSrMag', 'SDSSiMag',
                   'SDSSzMag', 'JpgMag', 'FpgMag', 'NpgMag']
 GSC_BAND_WAVELENGTH = [1.25, 1.65, 2.17,
@@ -127,7 +127,7 @@ class FGSCountrate:
         self.fgs_magnitude, self.fgs_magnitude_err = None, None
         self.band_dataframe = None
 
-    def query_fgs_countrate_magnitude(self, data_frame=None):
+    def query_fgs_countrate_magnitude(self, catalog=None, data_frame=None):
         """
         Calculate the FGS countrate and magnitude values for a guide star
         based on it's ID. This calculation uses the following steps:
@@ -152,10 +152,12 @@ class FGSCountrate:
         fgs_magnitude_err : float
             Error of the FGS magnitude
         """
+        if catalog is None:
+            catalog = 'GSC242'
 
         # Query GSC to get data on the guide star
         if data_frame is None:
-            data_frame = utils.query_gsc(gs_id=self.id, catalog='GSC242')
+            data_frame = utils.query_gsc(gs_id=self.id, catalog=catalog)
 
         # Check length of data table and turn it from a dataframe to a series
         if len(data_frame) == 1:
@@ -182,7 +184,7 @@ class FGSCountrate:
         data : pandas series, optional
             A pd series containing at least the following bands:
             GSC2: JpgMag, FpgMag, NpgMag
-            2MASS: tmassJmag, tmassHmag, tmassKsMag
+            2MASS: tmassJMag, tmassHMag, tmassKsMag
             SDSS: SDSSgMag, SDSSiMag, SDSSzMag
             If not passed, will use self.gsc_series
 
@@ -210,7 +212,7 @@ class FGSCountrate:
 
         # Dictionary of convert methods
         method_list = []
-        for i in ['tmassJmag', 'tmassHmag', 'tmassKsMag']:
+        for i in ['tmassJMag', 'tmassHMag', 'tmassKsMag']:
             switcher = OrderedDict([
                 (i, 'convert_tmass_to_jhk'),
                 ('SDSSgMag, SDSSzMag',  'convert_sdssgz_to_jhk'),
@@ -253,15 +255,15 @@ class FGSCountrate:
 
         # Create new attribute with updated series
         self._all_calculated_mag_series = copy.deepcopy(self._all_queried_mag_series)
-        self._all_calculated_mag_series.loc[['tmassJmag', 'tmassHmag', 'tmassKsMag']] = \
+        self._all_calculated_mag_series.loc[['tmassJMag', 'tmassHMag', 'tmassKsMag']] = \
             self.j_mag, self.h_mag, self.k_mag
 
         self._all_calculated_mag_err_series = copy.deepcopy(self._all_queried_mag_err_series)
-        self._all_calculated_mag_err_series.loc[['tmassJmagErr', 'tmassHmagErr', 'tmassKsMagErr']] = \
+        self._all_calculated_mag_err_series.loc[['tmassJMagErr', 'tmassHMagErr', 'tmassKsMagErr']] = \
             self.j_mag_err, self.h_mag_err, self.k_mag_err
 
         self._present_calculated_mags = self._present_queried_mags + [a for a in
-                                                                      ['tmassJmag', 'tmassHmag', 'tmassKsMag']
+                                                                      ['tmassJMag', 'tmassHMag', 'tmassKsMag']
                                                                       if a not in self._present_queried_mags]
 
         return self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err
@@ -277,8 +279,8 @@ class FGSCountrate:
             What FGS value you want to compute and return.
             Options are 'countrate', 'magnitude', or 'both'.
         band_series : Pandas Series
-            A Pandas series where the index contains ['tmassJmag',
-            'tmassHmag', 'tmassKsMag', 'SDSSgMag', 'SDSSiMag',
+            A Pandas series where the index contains ['tmassJMag',
+            'tmassHMag', 'tmassKsMag', 'SDSSgMag', 'SDSSiMag',
             'SDSSzMag', 'JpgMag', 'FpgMag', 'NpgMag'] and the
             values are the magnitude for each of these bands.
         guider_throughput : dict
@@ -358,7 +360,7 @@ class FGSCountrate:
         df['Signal'] = df.apply(lambda row: calc_signal(row), axis=1)
 
         # Can't compute if we only have J, H, and K  # TODO will be changed later
-        if {'tmassJmag', 'tmassHmag', 'tmassKsMag'} == set(self._present_calculated_mags):
+        if {'tmassJMag', 'tmassHMag', 'tmassKsMag'} == set(self._present_calculated_mags):
             raise ValueError('Cannot compute FGS countrate & magnitude for a guide star ({}) with only 2MASS '
                              'data'.format(self.id))
 

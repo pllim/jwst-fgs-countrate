@@ -18,7 +18,7 @@ values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965,
           14.1443, 0.003414216, 14.1067, 0.00433389]
 index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
          'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
-         'tmassJmag', 'tmassJmagErr', 'tmassHmag', 'tmassHmagErr', 'tmassKsMag', 'tmassKsMagErr',
+         'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
          'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
          'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
 
@@ -35,7 +35,7 @@ def test_convert_mag_to_jhk():
 
     """
 
-    full_list = ['JpgMag', 'FpgMag', 'NpgMag', 'tmassJmag', 'tmassHmag',
+    full_list = ['JpgMag', 'FpgMag', 'NpgMag', 'tmassJMag', 'tmassHMag',
                  'tmassKsMag', 'SDSSuMag', 'SDSSgMag', 'SDSSrMag',
                  'SDSSiMag', 'SDSSzMag']
 
@@ -61,7 +61,7 @@ def test_convert_mag_to_jhk():
 
             # Compare output to here
             method_names = []
-            for i in ['tmassJmag', 'tmassHmag', 'tmassKsMag']:
+            for i in ['tmassJMag', 'tmassHMag', 'tmassKsMag']:
                 if i in list(subset):
                     method_name_test = "convert_tmass_to_jhk"
 
@@ -116,8 +116,8 @@ def test_check_band_below_faint_limits_pass(jmag, hmag, kmag, gmag, zmag, imag, 
     """
     # Edit base data for specific test
     data = copy.copy(BASE_DATA)
-    data['tmassJmag'] = jmag
-    data['tmassHmag'] = hmag
+    data['tmassJMag'] = jmag
+    data['tmassHMag'] = hmag
     data['tmassKsMag'] = kmag
     data['SDSSgMag'] = gmag
     data['SDSSzMag'] = zmag
@@ -143,8 +143,8 @@ def test_check_band_below_faint_limits_failure():
     """
     # Edit base data for specific test
     data = copy.copy(BASE_DATA)
-    data['tmassJmag'] = -999
-    data['tmassHmag'] = -999
+    data['tmassJMag'] = -999
+    data['tmassHMag'] = -999
     data['tmassKsMag'] = -999
     data['SDSSgMag'] = 25
     data['SDSSzMag'] = 25
@@ -158,7 +158,7 @@ def test_check_band_below_faint_limits_failure():
     with pytest.raises(Exception) as e_info:
         fgs.calc_jhk_mag(data)
     assert 'There is not enough information on this guide star' in str(e_info.value)
-    assert 'tmassJmag' in str(e_info.value)
+    assert 'tmassJMag' in str(e_info.value)
 
 
 def test_tmass_to_jhk():
@@ -177,11 +177,11 @@ def test_tmass_to_jhk():
     input_j_err = 0.10
     input_h_err = 0.11
     input_k_err = 0.12
-    fgs.gsc_series['tmassJmag'] = input_j
-    fgs.gsc_series['tmassHmag'] = input_h
+    fgs.gsc_series['tmassJMag'] = input_j
+    fgs.gsc_series['tmassHMag'] = input_h
     fgs.gsc_series['tmassKsMag'] = input_k
-    fgs.gsc_series['tmassJmagErr'] = input_j_err
-    fgs.gsc_series['tmassHmagErr'] = input_h_err
+    fgs.gsc_series['tmassJMagErr'] = input_j_err
+    fgs.gsc_series['tmassHMagErr'] = input_h_err
     fgs.gsc_series['tmassKsMagErr'] = input_k_err
 
     # Run method with series input

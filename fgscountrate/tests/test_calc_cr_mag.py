@@ -7,10 +7,12 @@ import pytest
 import fgscountrate
 from fgscountrate.fgs_countrate_core import FGSCountrate
 
-
-def test_query_fgs_countrate_magnitude():
+test_query_fgs_countrate_magnitude_parameters = ['GSC242', 'GSC241']
+@pytest.mark.parametrize('gsc', test_query_fgs_countrate_magnitude_parameters)
+def test_query_fgs_countrate_magnitude(gsc):
     """
     Test this function runs smoothly and doesn't error
+    for multiple guide star catalogs
     (not tested anywhere else)
     """
 
@@ -18,7 +20,7 @@ def test_query_fgs_countrate_magnitude():
     gs_id = 'N13I000018'
     guider = 1
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-    cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
+    cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude(catalog=gsc)
     assert cr > 0
     assert mag > 0
     if any(i == -999 for i in fgs._all_queried_mag_series.values):
@@ -29,10 +31,10 @@ def test_query_fgs_countrate_magnitude():
     guider = 1
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
     cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
-    assert any(fgs.band_dataframe.at[i, 'Signal'] > 0 for i in ['tmassJmag', 'tmassHmag', 'tmassKsMag'])
+    assert any(fgs.band_dataframe.at[i, 'Signal'] > 0 for i in ['tmassJMag', 'tmassHMag', 'tmassKsMag'])
     assert cr > 0
     assert mag > 0
-    if any(i != -999 for i in fgs.gsc_series[['tmassJmag', 'tmassHmag', 'tmassKsMag']].values):
+    if any(i != -999 for i in fgs.gsc_series[['tmassJMag', 'tmassHMag', 'tmassKsMag']].values):
         warnings.warn('GS ID N94D006388 no longer behaves as originally expected. Test must be updated')
 
     # A case with missing uncertainty data
@@ -67,7 +69,7 @@ def test_compute_countrate_magnitude():
                14.14432, 0.003414216, 14.106670000000001, 0.00433389]
     index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
              'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
-             'tmassJmag', 'tmassJmagErr', 'tmassHmag', 'tmassHmagErr', 'tmassKsMag', 'tmassKsMagErr',
+             'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
              'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
              'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
     fgs.gsc_series = pd.Series(values, index=index)
@@ -130,7 +132,7 @@ def test_gscbj_sdssg_missing():
               14.1443, 0.003414216, 14.1067, 0.00433389]
     index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
              'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
-             'tmassJmag', 'tmassJmagErr', 'tmassHmag', 'tmassHmagErr', 'tmassKsMag', 'tmassKsMagErr',
+             'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
              'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
              'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
     fgs.gsc_series = pd.Series(values, index=index)
@@ -163,7 +165,7 @@ def test_errors():
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
     fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC242').iloc[0]
 
-    fgs._present_calculated_mags = ['tmassJmag', 'tmassHmag', 'tmassKsMag']
+    fgs._present_calculated_mags = ['tmassJMag', 'tmassHMag', 'tmassKsMag']
     for index in set(fgscountrate.fgs_countrate_core.GSC_BAND_NAMES) - set(fgs._present_calculated_mags):
         fgs.gsc_series.loc[index] = -999
     fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgscountrate.fgs_countrate_core.GSC_BAND_NAMES]

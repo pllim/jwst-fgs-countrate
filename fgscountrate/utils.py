@@ -15,15 +15,15 @@ def convert_to_abmag(value, name):
         Value of the band
     name : str
         Name of the band as stated in the GSC column name.
-        Options are: 2MASS: tmassJmag, tmassHmag, tmassKsMag
+        Options are: 2MASS: tmassJMag, tmassHMag, tmassKsMag
         SDSS: SDSSgMag, SDSSiMag, SDSSzMag
         GSC: JpgMag, FpgMag, IpgMag
 
     """
 
     mag_constants = {
-        'tmassJmag': 0.90,
-        'tmassHmag': 1.37,
+        'tmassJMag': 0.90,
+        'tmassHMag': 1.37,
         'tmassKsMag': 1.85,
         'SDSSuMag': 0.0,
         'SDSSgMag': 0.0,
@@ -74,10 +74,7 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
         Maximum declination in degrees for box search.
     catalog : str
         There are 5 different GSC2 versions available. Default is GSC 2.4.2
-        Call GSC23 to access GSC2.3.4
-        Call GSC240 to access GSC2.4.0
         Call GSC241 to access GSC2.4.1.1
-        Call GSC2412 to access GSC2.4.1.2
         Call GSC242 to access GSC2.4.2
 
     Returns
@@ -131,6 +128,10 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     except pd.errors.EmptyDataError:
         raise NameError("No guide stars match these requirements in catalog {}".format(catalog))
 
+    # Update header to new capitalization if using an old GSC version
+    if catalog in ['GSC2412', 'GSC241']:
+        data_frame = data_frame.rename(columns={'tmassJmag': 'tmassJMag', 'tmassJmagErr': 'tmassJMagErr',
+                                                'tmassHmag': 'tmassHMag', 'tmassHmagErr': 'tmassHMagErr'})
     return data_frame
 
 
