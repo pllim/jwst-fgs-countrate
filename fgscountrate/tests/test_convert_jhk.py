@@ -1,6 +1,7 @@
 import copy
 import itertools
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -204,9 +205,9 @@ def test_tmass_to_jhk():
     assert k_ser == input_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, input_j_err, 5)
-    assert pytest.approx(h_err_ser, input_h_err, 5)
-    assert pytest.approx(k_err_ser, input_k_err, 5)
+    assert np.isclose(j_err_ser, input_j_err, 1e-5)
+    assert np.isclose(h_err_ser, input_h_err, 1e-5)
+    assert np.isclose(k_err_ser, input_k_err, 1e-5)
 
 
 def test_sdssgz_to_jhk():
@@ -254,9 +255,9 @@ def test_sdssgz_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 0.27265120293170503, 5)
-    assert pytest.approx(h_err_ser, 0.28721836344780965, 5)
-    assert pytest.approx(k_err_ser, 0.2946740530383989, 5)
+    assert np.isclose(j_err_ser, 0.27265120293170503, 1e-5)
+    assert np.isclose(h_err_ser, 0.28721836344780965, 1e-5)
+    assert np.isclose(k_err_ser, 0.2946740530383989, 1e-5)
 
 
 def test_sdssgi_to_jhk():
@@ -304,9 +305,8 @@ def test_sdssgi_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 0.700281564042489, 5)
-    assert pytest.approx(h_err_ser, 0.4895968466769927, 5)
-    assert pytest.approx(k_err_ser, 0.5969626012226404, 5)
+    assert np.isclose(j_err_ser, 0.700281564042489, 1e-5)
+    assert np.isclose(h_err_ser, 0.4895968466769927, 1e-5)
 
 
 def test_sdssiz_to_jhk():
@@ -354,9 +354,9 @@ def test_sdssiz_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 3.4386988607490627, 5)
-    assert pytest.approx(h_err_ser, 7.868447911817022, 5)
-    assert pytest.approx(k_err_ser, 4.308133116754037, 5)
+    assert np.isclose(j_err_ser, 3.4386988607490627, 1e-5)
+    assert np.isclose(h_err_ser, 7.868447911817022, 1e-5)
+    assert np.isclose(k_err_ser, 4.308133116754037, 1e-5)
 
 
 def test_gsc2bjin_to_jhk():
@@ -404,9 +404,9 @@ def test_gsc2bjin_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 0.24527127838375157, 5)
-    assert pytest.approx(h_err_ser, 0.3649689782378769, 5)
-    assert pytest.approx(k_err_ser, 0.3236128314452318, 5)
+    assert np.isclose(j_err_ser, 0.24527127838375157, 1e-5)
+    assert np.isclose(h_err_ser, 0.3236128314452318, 1e-5)
+    assert np.isclose(k_err_ser, 0.3649689782378769, 1e-5)
 
 
 def test_gsc2rfin_to_jhk():
@@ -454,9 +454,9 @@ def test_gsc2rfin_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 0.30678481748776193, 5)
-    assert pytest.approx(h_err_ser, 0.46706206827893615, 5)
-    assert pytest.approx(k_err_ser, 0.5290933057070359, 5)
+    assert np.isclose(j_err_ser, 0.30678481748776193, 1e-5)
+    assert np.isclose(h_err_ser, 0.46706206827893615, 1e-5)
+    assert np.isclose(k_err_ser, 0.5290933057070359, 1e-5)
 
 
 def test_gsc2bjrf_to_jhk():
@@ -504,6 +504,6 @@ def test_gsc2bjrf_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 0.3268272426848776, 5)
-    assert pytest.approx(h_err_ser, 0.387910756252002, 5)
-    assert pytest.approx(k_err_ser, 0.44586387576927555, 5)
+    assert np.isclose(j_err_ser, 0.3268272426848776, 1e-5)
+    assert np.isclose(h_err_ser, 0.387910756252002, 1e-5)
+    assert np.isclose(k_err_ser, 0.44586387576927555, 1e-5)

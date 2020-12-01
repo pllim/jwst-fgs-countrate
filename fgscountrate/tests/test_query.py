@@ -1,5 +1,6 @@
 import itertools
 
+import numpy as np
 import pytest
 
 from fgscountrate.fgs_countrate_core import FGSCountrate
@@ -16,8 +17,8 @@ def test_successful_query():
     gs_ra = dataframe['ra'][0]
     gs_dec = dataframe['dec'][0]
 
-    assert pytest.approx(gs_ra, 1e-5) == 273.206729760604
-    assert pytest.approx(gs_dec, 1e-5) == 65.5335149359777
+    assert np.isclose(gs_ra, 273.206729760604, 1e-5)
+    assert np.isclose(gs_dec, 65.5335149359777, 1e-5)
 
 
 # TODO: Get an example ID for this test

@@ -79,30 +79,40 @@ def test_compute_countrate_magnitude():
     # Compute FGS countrate and magnitude
     cr, cr_err, mag, mag_err = fgs.calc_fgs_cr_mag_and_err()
 
-    assert pytest.approx(cr, 1777234.5129574337, 5)
-    assert pytest.approx(cr_err, 154340.24919027157, 5)
-    assert pytest.approx(mag, 13.310964314752303, 5)
-    assert pytest.approx(mag_err, 0.6657930516063038, 5)
+    assert np.isclose(cr, 1777234.5129574337, 1e-5)
+    assert np.isclose(cr_err, 154340.24919027157, 1e-5)
+    assert np.isclose(mag, 13.310964314752303, 1e-5)
+    assert np.isclose(mag_err, 0.6657930516063038, 1e-5)
 
 
-def test_convert_cr_to_mag():
+def test_convert_cr_to_fgs_mag():
     """Test count rate to magnitude conversion helper function"""
+    # Number come from case with all bands
     countrate = 1777234.5129574337
     expected_mag = 13.310964314752303
+    mag = fgscountrate.convert_cr_to_fgs_mag(countrate, guider=1)
+    assert np.isclose(mag, expected_mag, 1e-5)
 
-    mag = fgscountrate.convert_cr_to_mag(countrate, guider=1)
+    # Number come from case with missing bands
+    countrate = 1815659.5085523769
+    expected_mag = 13.28774013985303
+    mag = fgscountrate.convert_cr_to_fgs_mag(countrate, guider=1)
+    assert np.isclose(mag, expected_mag, 1e-5)
 
-    assert pytest.approx(mag, expected_mag, 5)
 
-
-def test_convert_mag_to_cr():
+def test_convert_fgs_mag_to_cr():
     """Test magnitude to count rate conversion helper function"""
+    # Number come from case with all bands
     magnitude = 13.310964314752303
     expected_cr = 1777234.5129574337
+    cr = fgscountrate.convert_fgs_mag_to_cr(magnitude, guider=1)
+    assert np.isclose(cr, expected_cr, 1)
 
-    cr = fgscountrate.convert_mag_to_cr(magnitude, guider=1)
-
-    assert pytest.approx(cr, expected_cr, 5)
+    # Number come from case with missing bands
+    magnitude = 13.28774013985303
+    expected_cr = 1815659.5085523769
+    cr = fgscountrate.convert_fgs_mag_to_cr(magnitude, guider=1)
+    assert np.isclose(cr, expected_cr, 1)
 
 
 def test_gscbj_sdssg_missing():
@@ -202,29 +212,29 @@ def test_output_options():
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=False)
     assert len(return_list) == 1
-    assert pytest.approx(return_list[0], fgs.fgs_countrate, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_countrate, 1e-5)
 
     # Case 2: Only Magnitude
     return_list = fgs._calc_fgs_cr_mag(to_compute='magnitude',
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=False)
     assert len(return_list) == 1
-    assert pytest.approx(return_list[0], fgs.fgs_magnitude, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_magnitude, 1e-5)
 
     # Case 3: Both
     return_list = fgs._calc_fgs_cr_mag(to_compute='both',
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=False)
     assert len(return_list) == 2
-    assert pytest.approx(return_list[0], fgs.fgs_countrate, 1e-5)
-    assert pytest.approx(return_list[1], fgs.fgs_magnitude, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_countrate, 1e-5)
+    assert np.isclose(return_list[1], fgs.fgs_magnitude, 1e-5)
 
     # Case 4: Countrate + Dataframe Only
     return_list = fgs._calc_fgs_cr_mag(to_compute='countrate',
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=True)
     assert len(return_list) == 2
-    assert pytest.approx(return_list[0], fgs.fgs_countrate, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_countrate, 1e-5)
     np.testing.assert_array_almost_equal(return_list[1].values.flatten().tolist(),
                                          fgs.band_dataframe.values.flatten().tolist(), 5)
 
@@ -233,7 +243,7 @@ def test_output_options():
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=True)
     assert len(return_list) == 2
-    assert pytest.approx(return_list[0], fgs.fgs_magnitude, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_magnitude, 1e-5)
     np.testing.assert_array_almost_equal(return_list[1].values.flatten().tolist(),
                                          fgs.band_dataframe.values.flatten().tolist(), 5)
 
@@ -242,7 +252,7 @@ def test_output_options():
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=True)
     assert len(return_list) == 3
-    assert pytest.approx(return_list[0], fgs.fgs_countrate, 1e-5)
-    assert pytest.approx(return_list[1], fgs.fgs_magnitude, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_countrate, 1e-5)
+    assert np.isclose(return_list[1], fgs.fgs_magnitude, 1e-5)
     np.testing.assert_array_almost_equal(return_list[2].values.flatten().tolist(),
                                          fgs.band_dataframe.values.flatten().tolist(), 5)
