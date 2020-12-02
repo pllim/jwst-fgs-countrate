@@ -108,6 +108,9 @@ class FGSCountrate:
         self.guider = guider
         self.gsc_series = None
 
+        if self.guider not in [1, 2]:
+            raise ValueError("Guider value must be an integer either 1 or 2")
+
         # Queried band information
         self._all_queried_mag_series = None
         self._all_queried_mag_err_series = None
@@ -384,14 +387,7 @@ class FGSCountrate:
 
         # Compute FGS magnitude
         sum_throughput = utils.trapezoid_sum(df_short, 'Throughput')
-
-        if self.guider == 1:
-            mag_conversion = MAG_CONVERSION_G1
-        elif self.guider == 2:
-            mag_conversion = MAG_CONVERSION_G2
-        else:
-            raise ValueError("Guider value must be an integer either 1 or 2")
-
+        mag_conversion = globals()['MAG_CONVERSION_G{}'.format(self.guider)]
         fgs_magnitude = -2.5 * np.log10(electrons / sum_throughput) + mag_conversion
 
         if to_compute.lower() == 'magnitude' or to_compute.lower() == 'both':
@@ -422,14 +418,8 @@ class FGSCountrate:
         """
 
         # Set values based on guider
-        if self.guider == 1:
-            throughput_dict = THROUGHPUT_G1
-            cr_conversion = CR_CONVERSION_G1
-        elif self.guider == 2:
-            throughput_dict = THROUGHPUT_G2
-            cr_conversion = CR_CONVERSION_G2
-        else:
-            raise ValueError("Guider value must be an integer either 1 or 2")
+        throughput_dict = globals()['THROUGHPUT_G{}'.format(self.guider)]
+        cr_conversion = globals()['CR_CONVERSION_G{}'.format(self.guider)]
 
         # Calculate magnitude/countrate
         self.fgs_countrate, self.fgs_magnitude, self.band_dataframe = \

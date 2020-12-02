@@ -178,11 +178,8 @@ def test_errors():
 
     # Test 2: Guider number is invalid
     guider = 3
-    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC242').iloc[0]
-
     with pytest.raises(ValueError) as excinfo:
-        fgs.calc_fgs_cr_mag_and_err()
+        fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
     assert '1 or 2' in str(excinfo.value), 'Allowed invalid guider number to pass'
 
 
