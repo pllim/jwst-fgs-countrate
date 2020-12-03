@@ -87,7 +87,7 @@ def test_convert_mag_to_jhk():
                 if method_name_test != getattr(fgs, '{}_convert_method'.format(i[5].lower())):
                     if error is False:
                         print(subset)
-                        print("     **", error, method_name_test, getattr(fgs, '{}_convert_method'.format(i[5].lower())))
+                        print("    **", error, method_name_test, getattr(fgs, '{}_convert_method'.format(i[5].lower())))
 
                 # If you could compute the JHK mags, check the same conversion method as used
                 if error is False:

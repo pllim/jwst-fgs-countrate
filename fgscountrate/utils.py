@@ -144,7 +144,7 @@ def check_band_below_faint_limits(bands, mags):
     ----------
     bands : str or list
         Band(s) to check (e.g. ['SDSSgMag', 'SDSSiMag'].
-    mags : str or list
+    mags : float or list
         Magnitude(s) of the band(s) corresponding to the band(s) in the
         bands variable
 
@@ -152,10 +152,9 @@ def check_band_below_faint_limits(bands, mags):
     -------
     bool : True if the band if below the faint limit. False if it is not
     """
-
     if isinstance(bands, str):
         bands = [bands]
-    if isinstance(mags, str):
+    if isinstance(mags, float):
         mags = [mags]
 
     for band, mag in zip(bands, mags):
@@ -171,10 +170,10 @@ def check_band_below_faint_limits(bands, mags):
     return False
 
 
-def trapezoid_sum(df, col):
+def trapezoid_sum(df, col, col2='Wavelength'):
     """
-    Sum across a dataframe of values using a
-    trapezoid method
+    Sum across a Pandas dataframe of values
+    using a trapezoid method
 
     Parameters
     ----------
@@ -183,12 +182,15 @@ def trapezoid_sum(df, col):
         parameter col
     col : str
         Name of the column to sum over
+    col2 : str
+        Name of 2nd column to sum over; default is
+        "Wavelength"
     """
     length = len(df) - 1
     trap = np.zeros(length)
     for i in range(length):
-        trap[i] = (df.at[df.index[i + 1], "Wavelength"] -
-                   df.at[df.index[i], "Wavelength"]) * \
+        trap[i] = (df.at[df.index[i + 1], col2] -
+                   df.at[df.index[i], col2]) * \
                    (df.at[df.index[i], col] +
                     df.at[df.index[i + 1], col]) / 2.0
 

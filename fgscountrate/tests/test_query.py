@@ -75,6 +75,5 @@ def test_coordinate_combinations():
 
             # Check that the remaining combinations should successfully run
             else:
-                print(subset)
                 subset_dict = dict((k, input_dict[k]) for k in subset)
                 utils.query_gsc(**subset_dict, catalog='GSC242')
