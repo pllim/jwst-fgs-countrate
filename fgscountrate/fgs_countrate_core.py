@@ -166,7 +166,7 @@ class FGSCountrate:
         if len(data_frame) == 1:
             self.gsc_series = data_frame.iloc[0]
         else:
-            raise ValueError("This Guide Star ID points to multiple lines in GSC2.4.1")
+            raise ValueError("This Guide Star ID points to multiple lines in {}".format(catalog))
 
         # Convert to JHK magnitudes
         self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err = \

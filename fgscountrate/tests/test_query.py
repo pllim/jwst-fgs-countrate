@@ -46,7 +46,7 @@ def test_coordinate_combinations():
     """
     Test different possible combinations of coordinates to query the GSC
 
-    These inputs were checked for GSC2.4.1 and should return guide stars. A
+    These inputs were checked for GSC2.4.2 and should return guide stars. A
     change to the guide star catalog could cause this test to throw an error
     if the guide star entries have changed
     """
