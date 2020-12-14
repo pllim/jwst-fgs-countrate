@@ -90,13 +90,13 @@ def test_compute_countrate_magnitude():
 
 def test_convert_cr_to_fgs_mag():
     """Test count rate to magnitude conversion helper function"""
-    # Number come from case with all bands
+    # Numbers come from case with all bands
     countrate = 1777234.5129574337
     expected_mag = 13.310964314752303
     mag = fgscountrate.convert_cr_to_fgs_mag(countrate, guider=1)
     assert np.isclose(mag, expected_mag, 1e-5)
 
-    # Number come from case with missing bands
+    # Numbers come from case with missing bands
     countrate = 1815659.5085523769
     expected_mag = 13.28774013985303
     mag = fgscountrate.convert_cr_to_fgs_mag(countrate, guider=1)
@@ -105,13 +105,13 @@ def test_convert_cr_to_fgs_mag():
 
 def test_convert_fgs_mag_to_cr():
     """Test magnitude to count rate conversion helper function"""
-    # Number come from case with all bands
+    # Numbers come from case with all bands
     magnitude = 13.310964314752303
     expected_cr = 1777234.5129574337
     cr = fgscountrate.convert_fgs_mag_to_cr(magnitude, guider=1)
     assert np.isclose(cr, expected_cr, 1)
 
-    # Number come from case with missing bands
+    # Numbers come from case with missing bands
     magnitude = 13.28774013985303
     expected_cr = 1815659.5085523769
     cr = fgscountrate.convert_fgs_mag_to_cr(magnitude, guider=1)

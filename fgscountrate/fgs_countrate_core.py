@@ -141,6 +141,14 @@ class FGSCountrate:
                 if they are not already present
             3) Use all the present bands and the guider number to
                 calculate the FGS countrate and magnitude
+        Parameters
+        ----------
+        catalog : str, Optional
+            There are 5 different GSC2 versions available. Default is GSC 2.4.2
+            Call GSC241 to access GSC2.4.1
+            Call GSC242 to access GSC2.4.2
+        data_frame : Pandas dataframe, optional
+            Pass in a data frame rather than query the guide star catalog
 
         Returns
         -------
