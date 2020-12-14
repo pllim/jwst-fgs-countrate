@@ -8,9 +8,12 @@ import fgscountrate
 from fgscountrate.fgs_countrate_core import FGSCountrate
 
 
-def test_query_fgs_countrate_magnitude():
+test_query_fgs_countrate_magnitude_parameters = ['GSC242', 'GSC241']
+@pytest.mark.parametrize('gsc', test_query_fgs_countrate_magnitude_parameters)
+def test_query_fgs_countrate_magnitude(gsc):
     """
     Test this function runs smoothly and doesn't error
+    for multiple guide star catalogs
     (not tested anywhere else)
     """
 
@@ -18,7 +21,7 @@ def test_query_fgs_countrate_magnitude():
     gs_id = 'N13I000018'
     guider = 1
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-    cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
+    cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude(catalog=gsc)
     assert cr > 0
     assert mag > 0
     if any(i == -999 for i in fgs._all_queried_mag_series.values):
@@ -29,10 +32,10 @@ def test_query_fgs_countrate_magnitude():
     guider = 1
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
     cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
-    assert any(fgs.band_dataframe.at[i, 'Signal'] > 0 for i in ['tmassJmag', 'tmassHmag', 'tmassKsMag'])
+    assert any(fgs.band_dataframe.at[i, 'Signal'] > 0 for i in ['tmassJMag', 'tmassHMag', 'tmassKsMag'])
     assert cr > 0
     assert mag > 0
-    if any(i != -999 for i in fgs.gsc_series[['tmassJmag', 'tmassHmag', 'tmassKsMag']].values):
+    if any(i != -999 for i in fgs.gsc_series[['tmassJMag', 'tmassHMag', 'tmassKsMag']].values):
         warnings.warn('GS ID N94D006388 no longer behaves as originally expected. Test must be updated')
 
     # A case with missing uncertainty data
@@ -58,14 +61,16 @@ def test_compute_countrate_magnitude():
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
 
     # Reset data to a set of constant, fake data
-    values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965,
-              14.9447, 0.285722, 14.0877, 0.2927929, 13.7468, 0.239294,
-              13.339, 0.0250000003, 12.993, 0.0270000007, 12.901, 0.0270000007,
-              15.78594, 0.005142, 14.6547, 0.003211281, 14.27808, 0.003273380,
-              14.1443, 0.003414216, 14.1067, 0.00433389]
+    values = ['N13I000018 ', 420900912, 273.206729760604, 65.5335149359777,
+              8.3030233068735e-05, 0.000185964552890292, 14.9447, 0.285722,
+              14.0877, 0.29279299999999997, 13.7468, 0.239294, 13.33899974823,
+              0.025000000372529, 12.9930000305176, 0.0270000007003546,
+              12.9010000228882, 0.0270000007003546, 15.78594, 0.005142466,
+              14.654670000000001, 0.003211281, 14.27808, 0.0032733809999999997,
+              14.14432, 0.003414216, 14.106670000000001, 0.00433389]
     index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
              'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
-             'tmassJmag', 'tmassJmagErr', 'tmassHmag', 'tmassHmagErr', 'tmassKsMag', 'tmassKsMagErr',
+             'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
              'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
              'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
     fgs.gsc_series = pd.Series(values, index=index)
@@ -77,10 +82,40 @@ def test_compute_countrate_magnitude():
     # Compute FGS countrate and magnitude
     cr, cr_err, mag, mag_err = fgs.calc_fgs_cr_mag_and_err()
 
-    assert pytest.approx(cr, 1777234.5129574337, 5)
-    assert pytest.approx(cr_err, 154340.24919027157, 5)
-    assert pytest.approx(mag, -39.77243568524769, 5)
-    assert pytest.approx(mag_err, 1.9887037388556956, 5)
+    assert np.isclose(cr, 1777234.5129574337, 1e-5)
+    assert np.isclose(cr_err, 154340.24919027157, 1e-5)
+    assert np.isclose(mag, 13.310964314752303, 1e-5)
+    assert np.isclose(mag_err, 0.6657930516063038, 1e-5)
+
+
+def test_convert_cr_to_fgs_mag():
+    """Test count rate to magnitude conversion helper function"""
+    # Numbers come from case with all bands
+    countrate = 1777234.5129574337
+    expected_mag = 13.310964314752303
+    mag = fgscountrate.convert_cr_to_fgs_mag(countrate, guider=1)
+    assert np.isclose(mag, expected_mag, 1e-5)
+
+    # Numbers come from case with missing bands
+    countrate = 1815659.5085523769
+    expected_mag = 13.28774013985303
+    mag = fgscountrate.convert_cr_to_fgs_mag(countrate, guider=1)
+    assert np.isclose(mag, expected_mag, 1e-5)
+
+
+def test_convert_fgs_mag_to_cr():
+    """Test magnitude to count rate conversion helper function"""
+    # Numbers come from case with all bands
+    magnitude = 13.310964314752303
+    expected_cr = 1777234.5129574337
+    cr = fgscountrate.convert_fgs_mag_to_cr(magnitude, guider=1)
+    assert np.isclose(cr, expected_cr, 1)
+
+    # Numbers come from case with missing bands
+    magnitude = 13.28774013985303
+    expected_cr = 1815659.5085523769
+    cr = fgscountrate.convert_fgs_mag_to_cr(magnitude, guider=1)
+    assert np.isclose(cr, expected_cr, 1)
 
 
 def test_gscbj_sdssg_missing():
@@ -98,7 +133,7 @@ def test_gscbj_sdssg_missing():
               14.1443, 0.003414216, 14.1067, 0.00433389]
     index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
              'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
-             'tmassJmag', 'tmassJmagErr', 'tmassHmag', 'tmassHmagErr', 'tmassKsMag', 'tmassKsMagErr',
+             'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
              'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
              'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
     fgs.gsc_series = pd.Series(values, index=index)
@@ -129,9 +164,9 @@ def test_errors():
 
     # Test 1: data only includes 2MASS
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC241').iloc[0]
+    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC242').iloc[0]
 
-    fgs._present_calculated_mags = ['tmassJmag', 'tmassHmag', 'tmassKsMag']
+    fgs._present_calculated_mags = ['tmassJMag', 'tmassHMag', 'tmassKsMag']
     for index in set(fgscountrate.fgs_countrate_core.GSC_BAND_NAMES) - set(fgs._present_calculated_mags):
         fgs.gsc_series.loc[index] = -999
     fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgscountrate.fgs_countrate_core.GSC_BAND_NAMES]
@@ -143,11 +178,8 @@ def test_errors():
 
     # Test 2: Guider number is invalid
     guider = 3
-    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC241').iloc[0]
-
     with pytest.raises(ValueError) as excinfo:
-        fgs.calc_fgs_cr_mag_and_err()
+        fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
     assert '1 or 2' in str(excinfo.value), 'Allowed invalid guider number to pass'
 
 
@@ -160,7 +192,7 @@ def test_output_options():
     gs_id = 'N13I000018'
     guider = 2
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC241').iloc[0]
+    fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC242').iloc[0]
     fgs._present_calculated_mags = fgscountrate.fgs_countrate_core.GSC_BAND_NAMES
     fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgs._present_calculated_mags]
     mag_err_list = [fgs.gsc_series[ind + 'Err'] for ind in fgs._all_calculated_mag_series.index]
@@ -180,29 +212,29 @@ def test_output_options():
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=False)
     assert len(return_list) == 1
-    assert pytest.approx(return_list[0], fgs.fgs_countrate, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_countrate, 1e-5)
 
     # Case 2: Only Magnitude
     return_list = fgs._calc_fgs_cr_mag(to_compute='magnitude',
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=False)
     assert len(return_list) == 1
-    assert pytest.approx(return_list[0], fgs.fgs_magnitude, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_magnitude, 1e-5)
 
     # Case 3: Both
     return_list = fgs._calc_fgs_cr_mag(to_compute='both',
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=False)
     assert len(return_list) == 2
-    assert pytest.approx(return_list[0], fgs.fgs_countrate, 1e-5)
-    assert pytest.approx(return_list[1], fgs.fgs_magnitude, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_countrate, 1e-5)
+    assert np.isclose(return_list[1], fgs.fgs_magnitude, 1e-5)
 
     # Case 4: Countrate + Dataframe Only
     return_list = fgs._calc_fgs_cr_mag(to_compute='countrate',
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=True)
     assert len(return_list) == 2
-    assert pytest.approx(return_list[0], fgs.fgs_countrate, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_countrate, 1e-5)
     np.testing.assert_array_almost_equal(return_list[1].values.flatten().tolist(),
                                          fgs.band_dataframe.values.flatten().tolist(), 5)
 
@@ -211,7 +243,7 @@ def test_output_options():
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=True)
     assert len(return_list) == 2
-    assert pytest.approx(return_list[0], fgs.fgs_magnitude, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_magnitude, 1e-5)
     np.testing.assert_array_almost_equal(return_list[1].values.flatten().tolist(),
                                          fgs.band_dataframe.values.flatten().tolist(), 5)
 
@@ -220,7 +252,7 @@ def test_output_options():
                                        band_series=band_series, guider_throughput=guider_throughput,
                                        guider_gain=guider_gain, return_dataframe=True)
     assert len(return_list) == 3
-    assert pytest.approx(return_list[0], fgs.fgs_countrate, 1e-5)
-    assert pytest.approx(return_list[1], fgs.fgs_magnitude, 1e-5)
+    assert np.isclose(return_list[0], fgs.fgs_countrate, 1e-5)
+    assert np.isclose(return_list[1], fgs.fgs_magnitude, 1e-5)
     np.testing.assert_array_almost_equal(return_list[2].values.flatten().tolist(),
                                          fgs.band_dataframe.values.flatten().tolist(), 5)

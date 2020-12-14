@@ -2,6 +2,8 @@ JWST FGS countrate estimation
 -----------------------------
 
 [![STScI](https://img.shields.io/badge/powered%20by-STScI-blue.svg?colorA=707170&colorB=3e8ddd&style=flat)](http://www.stsci.edu)
+[![Python](https://img.shields.io/badge/Python-3.6%20%7C%203.7%20%7C%203.8-blue.svg)](https://www.python.org/)
+[![Build Status](https://ssbjenkins.stsci.edu/job/STScI/job/jwst-fgs-countrate/job/master/badge/icon)](https://ssbjenkins.stsci.edu/job/STScI/job/jwst-fgs-countrate/job/master/)
 
 
 jwst-fgs-countrate converts guide star information from different catalogs into the expected countrate for the JWST Fine Guidance Sensor (FGS). This is done by querying the Guide Star Catalog (containing GSC2, 2MASS, SDSS, and eventually GAIA data) based on the input of the guide star’s HST ID number and using information from that catalog to calculate a countrate.
@@ -11,17 +13,23 @@ Collaborators include Shannon Osborne ([@shanosborne](https://github.com/shanosb
 
 Example Use
 -----------
+Convert count rate to FGS magnitude and back
+```
+import fgscountrate
+fgs_magnitude = fgscountrate.convert_cr_to_fgs_mag(fgs_countrate=1500000, guider=1)
+fgs_countrate = fgscountrate.convert_fgs_mag_to_cr(fgs_magnitude=14.5, guider=2)
+```
 
-To compute the FGS countrate and magnitude given a guide star ID:
+To compute the FGS count rate, magnitude, and errors given a guide star ID
 ```
 import fgscountrate
 fgs = fgscountrate.FGSCountrate(guide_star_id='N13I000018', guider=1)
 cr, cr_err, mag, mag_err = fgs.query_fgs_countrate_magnitude()
 ```
 
-The countrate and magnitude calculations are also saved in attributes
+The count rate and magnitude calculations are also saved in attributes
 ```
-# Countrate and Magnitude attributes
+# Count rate and Magnitude attributes
 fgs.fgs_countrate
 fgs.fgs_countrate_err
 fgs.fgs_magnitude
@@ -30,13 +38,13 @@ fgs.fgs_magnitude_err
 
 To get the guide star data from the guide star catalog
 ```
-# After doing the countrate calculation, access the gsc_series attribute
+# After doing the count rate calculation, access the gsc_series attribute
 import fgscountrate
 fgs = fgscountrate.FGSCountrate(guide_star_id='N13I000018', guider=1)
 fgs_countrate = fgs.query_fgs_countrate_magnitude()
 fgs.gsc_series
 
-# Or independent of the countrate calculation, use query_gsc() to return a Pandas dataframe
+# Or independent of the count rate calculation, use query_gsc() to return a Pandas dataframe
 from fgscountrate.utils import query_gsc
 data = query_gsc(gs_id='N13I000018')
 ```

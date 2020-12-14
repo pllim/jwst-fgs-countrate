@@ -1,6 +1,7 @@
 import copy
 import itertools
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -17,7 +18,7 @@ values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965,
           14.1443, 0.003414216, 14.1067, 0.00433389]
 index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
          'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
-         'tmassJmag', 'tmassJmagErr', 'tmassHmag', 'tmassHmagErr', 'tmassKsMag', 'tmassKsMagErr',
+         'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
          'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
          'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
 
@@ -34,7 +35,7 @@ def test_convert_mag_to_jhk():
 
     """
 
-    full_list = ['JpgMag', 'FpgMag', 'NpgMag', 'tmassJmag', 'tmassHmag',
+    full_list = ['JpgMag', 'FpgMag', 'NpgMag', 'tmassJMag', 'tmassHMag',
                  'tmassKsMag', 'SDSSuMag', 'SDSSgMag', 'SDSSrMag',
                  'SDSSiMag', 'SDSSzMag']
 
@@ -60,7 +61,7 @@ def test_convert_mag_to_jhk():
 
             # Compare output to here
             method_names = []
-            for i in ['tmassJmag', 'tmassHmag', 'tmassKsMag']:
+            for i in ['tmassJMag', 'tmassHMag', 'tmassKsMag']:
                 if i in list(subset):
                     method_name_test = "convert_tmass_to_jhk"
 
@@ -86,7 +87,7 @@ def test_convert_mag_to_jhk():
                 if method_name_test != getattr(fgs, '{}_convert_method'.format(i[5].lower())):
                     if error is False:
                         print(subset)
-                        print("     **", error, method_name_test, getattr(fgs, '{}_convert_method'.format(i[5].lower())))
+                        print("    **", error, method_name_test, getattr(fgs, '{}_convert_method'.format(i[5].lower())))
 
                 # If you could compute the JHK mags, check the same conversion method as used
                 if error is False:
@@ -115,8 +116,8 @@ def test_check_band_below_faint_limits_pass(jmag, hmag, kmag, gmag, zmag, imag, 
     """
     # Edit base data for specific test
     data = copy.copy(BASE_DATA)
-    data['tmassJmag'] = jmag
-    data['tmassHmag'] = hmag
+    data['tmassJMag'] = jmag
+    data['tmassHMag'] = hmag
     data['tmassKsMag'] = kmag
     data['SDSSgMag'] = gmag
     data['SDSSzMag'] = zmag
@@ -142,8 +143,8 @@ def test_check_band_below_faint_limits_failure():
     """
     # Edit base data for specific test
     data = copy.copy(BASE_DATA)
-    data['tmassJmag'] = -999
-    data['tmassHmag'] = -999
+    data['tmassJMag'] = -999
+    data['tmassHMag'] = -999
     data['tmassKsMag'] = -999
     data['SDSSgMag'] = 25
     data['SDSSzMag'] = 25
@@ -157,7 +158,7 @@ def test_check_band_below_faint_limits_failure():
     with pytest.raises(Exception) as e_info:
         fgs.calc_jhk_mag(data)
     assert 'There is not enough information on this guide star' in str(e_info.value)
-    assert 'tmassJmag' in str(e_info.value)
+    assert 'tmassJMag' in str(e_info.value)
 
 
 def test_tmass_to_jhk():
@@ -176,11 +177,11 @@ def test_tmass_to_jhk():
     input_j_err = 0.10
     input_h_err = 0.11
     input_k_err = 0.12
-    fgs.gsc_series['tmassJmag'] = input_j
-    fgs.gsc_series['tmassHmag'] = input_h
+    fgs.gsc_series['tmassJMag'] = input_j
+    fgs.gsc_series['tmassHMag'] = input_h
     fgs.gsc_series['tmassKsMag'] = input_k
-    fgs.gsc_series['tmassJmagErr'] = input_j_err
-    fgs.gsc_series['tmassHmagErr'] = input_h_err
+    fgs.gsc_series['tmassJMagErr'] = input_j_err
+    fgs.gsc_series['tmassHMagErr'] = input_h_err
     fgs.gsc_series['tmassKsMagErr'] = input_k_err
 
     # Run method with series input
@@ -204,9 +205,9 @@ def test_tmass_to_jhk():
     assert k_ser == input_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, input_j_err, 5)
-    assert pytest.approx(h_err_ser, input_h_err, 5)
-    assert pytest.approx(k_err_ser, input_k_err, 5)
+    assert np.isclose(j_err_ser, input_j_err, 1e-5)
+    assert np.isclose(h_err_ser, input_h_err, 1e-5)
+    assert np.isclose(k_err_ser, input_k_err, 1e-5)
 
 
 def test_sdssgz_to_jhk():
@@ -254,9 +255,9 @@ def test_sdssgz_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 0.27265120293170503, 5)
-    assert pytest.approx(h_err_ser, 0.28721836344780965, 5)
-    assert pytest.approx(k_err_ser, 0.2946740530383989, 5)
+    assert np.isclose(j_err_ser, 0.27265120293170503, 1e-5)
+    assert np.isclose(h_err_ser, 0.28721836344780965, 1e-5)
+    assert np.isclose(k_err_ser, 0.2946740530383989, 1e-5)
 
 
 def test_sdssgi_to_jhk():
@@ -304,9 +305,8 @@ def test_sdssgi_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 0.700281564042489, 5)
-    assert pytest.approx(h_err_ser, 0.4895968466769927, 5)
-    assert pytest.approx(k_err_ser, 0.5969626012226404, 5)
+    assert np.isclose(j_err_ser, 0.700281564042489, 1e-5)
+    assert np.isclose(h_err_ser, 0.4895968466769927, 1e-5)
 
 
 def test_sdssiz_to_jhk():
@@ -354,9 +354,9 @@ def test_sdssiz_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 3.4386988607490627, 5)
-    assert pytest.approx(h_err_ser, 7.868447911817022, 5)
-    assert pytest.approx(k_err_ser, 4.308133116754037, 5)
+    assert np.isclose(j_err_ser, 3.4386988607490627, 1e-5)
+    assert np.isclose(h_err_ser, 7.868447911817022, 1e-5)
+    assert np.isclose(k_err_ser, 4.308133116754037, 1e-5)
 
 
 def test_gsc2bjin_to_jhk():
@@ -404,9 +404,9 @@ def test_gsc2bjin_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 0.24527127838375157, 5)
-    assert pytest.approx(h_err_ser, 0.3649689782378769, 5)
-    assert pytest.approx(k_err_ser, 0.3236128314452318, 5)
+    assert np.isclose(j_err_ser, 0.24527127838375157, 1e-5)
+    assert np.isclose(h_err_ser, 0.3236128314452318, 1e-5)
+    assert np.isclose(k_err_ser, 0.3649689782378769, 1e-5)
 
 
 def test_gsc2rfin_to_jhk():
@@ -454,9 +454,9 @@ def test_gsc2rfin_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 0.30678481748776193, 5)
-    assert pytest.approx(h_err_ser, 0.46706206827893615, 5)
-    assert pytest.approx(k_err_ser, 0.5290933057070359, 5)
+    assert np.isclose(j_err_ser, 0.30678481748776193, 1e-5)
+    assert np.isclose(h_err_ser, 0.46706206827893615, 1e-5)
+    assert np.isclose(k_err_ser, 0.5290933057070359, 1e-5)
 
 
 def test_gsc2bjrf_to_jhk():
@@ -504,6 +504,6 @@ def test_gsc2bjrf_to_jhk():
     assert k_ser == output_k
 
     # Check uncertainties
-    assert pytest.approx(j_err_ser, 0.3268272426848776, 5)
-    assert pytest.approx(h_err_ser, 0.387910756252002, 5)
-    assert pytest.approx(k_err_ser, 0.44586387576927555, 5)
+    assert np.isclose(j_err_ser, 0.3268272426848776, 1e-5)
+    assert np.isclose(h_err_ser, 0.387910756252002, 1e-5)
+    assert np.isclose(k_err_ser, 0.44586387576927555, 1e-5)

@@ -37,10 +37,10 @@ def convert_tmass_to_jhk(data, output_mag):
     """
 
     if isinstance(data, pd.Series):
-        j_mag = data['tmassJmag']
-        j_err = data['tmassJmagErr']
-        h_mag = data['tmassHmag']
-        h_err = data['tmassHmagErr']
+        j_mag = data['tmassJMag']
+        j_err = data['tmassJMagErr']
+        h_mag = data['tmassHMag']
+        h_err = data['tmassHMagErr']
         k_mag = data['tmassKsMag']
         k_err = data['tmassKsMagErr']
     elif isinstance(data, tuple):

@@ -15,15 +15,15 @@ def convert_to_abmag(value, name):
         Value of the band
     name : str
         Name of the band as stated in the GSC column name.
-        Options are: 2MASS: tmassJmag, tmassHmag, tmassKsMag
+        Options are: 2MASS: tmassJMag, tmassHMag, tmassKsMag
         SDSS: SDSSgMag, SDSSiMag, SDSSzMag
         GSC: JpgMag, FpgMag, IpgMag
 
     """
 
     mag_constants = {
-        'tmassJmag': 0.90,
-        'tmassHmag': 1.37,
+        'tmassJMag': 0.90,
+        'tmassHMag': 1.37,
         'tmassKsMag': 1.85,
         'SDSSuMag': 0.0,
         'SDSSgMag': 0.0,
@@ -73,12 +73,9 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     maxdec : float
         Maximum declination in degrees for box search.
     catalog : str
-        There are 5 different GSC2 versions available. Default is GSC241
-        Call GSC23 to access GSC2.3.4
-        Call GSC240 to access GSC2.4.0
-        Call GSC241 to access GSC2.4.1.1
-        Call GSC2412 to access GSC2.4.1.2
-        Call GSC2420 to access GSC2.4.2
+        There are 5 different GSC2 versions available. Default is GSC 2.4.2
+        Call GSC241 to access GSC2.4.1
+        Call GSC242 to access GSC2.4.2
 
     Returns
     -------
@@ -91,7 +88,7 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     # Set file format and default catalog
     file_format = 'CSV'
     if catalog is None:
-        catalog = 'GSC241'
+        catalog = 'GSC242'
 
     # Check only 1 coordinate specification is being used AND the coordinate specification chosen is complete
     method_list = [any([gs_id]), any([ra, dec, cone_radius]), any([minra, maxra, mindec, maxdec])]
@@ -131,6 +128,10 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     except pd.errors.EmptyDataError:
         raise NameError("No guide stars match these requirements in catalog {}".format(catalog))
 
+    # Update header to new capitalization if using an old GSC version
+    if catalog in ['GSC2412', 'GSC241']:
+        data_frame = data_frame.rename(columns={'tmassJmag': 'tmassJMag', 'tmassJmagErr': 'tmassJMagErr',
+                                                'tmassHmag': 'tmassHMag', 'tmassHmagErr': 'tmassHMagErr'})
     return data_frame
 
 
@@ -143,7 +144,7 @@ def check_band_below_faint_limits(bands, mags):
     ----------
     bands : str or list
         Band(s) to check (e.g. ['SDSSgMag', 'SDSSiMag'].
-    mags : str or list
+    mags : float or list
         Magnitude(s) of the band(s) corresponding to the band(s) in the
         bands variable
 
@@ -151,10 +152,9 @@ def check_band_below_faint_limits(bands, mags):
     -------
     bool : True if the band if below the faint limit. False if it is not
     """
-
     if isinstance(bands, str):
         bands = [bands]
-    if isinstance(mags, str):
+    if isinstance(mags, float):
         mags = [mags]
 
     for band, mag in zip(bands, mags):
@@ -168,3 +168,30 @@ def check_band_below_faint_limits(bands, mags):
             return True
 
     return False
+
+
+def trapezoid_sum(df, col, col2='Wavelength'):
+    """
+    Sum across a Pandas dataframe of values
+    using a trapezoid method
+
+    Parameters
+    ----------
+    df : Pandas Dataframe
+        Dataframe with columns "Wavelength" and
+        parameter col
+    col : str
+        Name of the column to sum over
+    col2 : str
+        Name of 2nd column to sum over; default is
+        "Wavelength"
+    """
+    length = len(df) - 1
+    trap = np.zeros(length)
+    for i in range(length):
+        trap[i] = (df.at[df.index[i + 1], col2] -
+                   df.at[df.index[i], col2]) * \
+                   (df.at[df.index[i], col] +
+                    df.at[df.index[i + 1], col]) / 2.0
+
+    return np.sum(trap)

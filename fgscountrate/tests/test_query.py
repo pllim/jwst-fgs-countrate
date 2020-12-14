@@ -1,5 +1,6 @@
 import itertools
 
+import numpy as np
 import pytest
 
 from fgscountrate.fgs_countrate_core import FGSCountrate
@@ -9,15 +10,15 @@ from fgscountrate import utils
 def test_successful_query():
     """Test a query that should be successful"""
     gs_id = 'N13I000018'
-    dataframe = utils.query_gsc(gs_id=gs_id, catalog='GSC241')
+    dataframe = utils.query_gsc(gs_id=gs_id, catalog='GSC242')
 
     assert len(dataframe) == 1
 
     gs_ra = dataframe['ra'][0]
     gs_dec = dataframe['dec'][0]
 
-    assert pytest.approx(gs_ra, 1e-5) == 273.206729760604
-    assert pytest.approx(gs_dec, 1e-5) == 65.5335149359777
+    assert np.isclose(gs_ra, 273.206729760604, 1e-5)
+    assert np.isclose(gs_dec, 65.5335149359777, 1e-5)
 
 
 # TODO: Get an example ID for this test
@@ -37,7 +38,7 @@ def test_fake_guidestar_id():
     # Check an input guide star ID that isn't found
     with pytest.raises(NameError) as excinfo:
         gs_id = 'fakeid'
-        utils.query_gsc(gs_id=gs_id, catalog='GSC241')
+        utils.query_gsc(gs_id=gs_id, catalog='GSC242')
     assert 'No guide stars match' in str(excinfo.value), 'Fake Guide Star ID incorrectly found in catalog'
 
 
@@ -45,15 +46,15 @@ def test_coordinate_combinations():
     """
     Test different possible combinations of coordinates to query the GSC
 
-    These inputs were checked for GSC2.4.1 and should return guide stars. A
+    These inputs were checked for GSC2.4.2 and should return guide stars. A
     change to the guide star catalog could cause this test to throw an error
     if the guide star entries have changed
     """
 
     input_dict = {
         'gs_id': 'N13I000018',
-        'ra': 273.206729760604,
-        'dec': 65.53351493597,
+        'ra': 273.206729584718,
+        'dec': 65.5335161247318,
         'cone_radius': 0.1,
         'minra': 273.2,
         'maxra': 273.21,
@@ -70,9 +71,9 @@ def test_coordinate_combinations():
                                    set(['minra', 'maxra', 'mindec', 'maxdec'])]:
                 with pytest.raises(ValueError):
                     subset_dict = dict((k, input_dict[k]) for k in subset)
-                    utils.query_gsc(**subset_dict, catalog='GSC241')
+                    utils.query_gsc(**subset_dict, catalog='GSC242')
 
             # Check that the remaining combinations should successfully run
             else:
                 subset_dict = dict((k, input_dict[k]) for k in subset)
-                utils.query_gsc(**subset_dict, catalog='GSC241')
+                utils.query_gsc(**subset_dict, catalog='GSC242')
