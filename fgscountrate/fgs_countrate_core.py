@@ -482,17 +482,14 @@ def convert_cr_to_fgs_mag(fgs_countrate, guider):
     """
     Convert count rate to FGS magnitude.
 
+    Parameters
+    ----------
     fgs_countrate : float
         Count rate you want to convert into an FGS magnitude
     guider : int
         The guider number, either 1 or 2
     """
-    cr_conversion = globals()['CR_CONVERSION_G{}'.format(guider)]
-    throughput = globals()['THROUGHPUT_G{}'.format(guider)]
-    mag_conversion = globals()['MAG_CONVERSION_G{}'.format(guider)]
-
-    df = pd.DataFrame(throughput.items(), index=np.arange(len(throughput)), columns=['Wavelength', 'Throughput'])
-    sum_throughput = utils.trapezoid_sum(df, 'Throughput')
+    cr_conversion, mag_conversion, sum_throughput = get_conversion_constants(guider)
     fgs_magnitude = -2.5 * np.log10(fgs_countrate * cr_conversion / sum_throughput) + mag_conversion
 
     return fgs_magnitude
@@ -509,12 +506,32 @@ def convert_fgs_mag_to_cr(fgs_magnitude, guider):
     guider : int
         The guider number, either 1 or 2
     """
+    cr_conversion, mag_conversion, sum_throughput = get_conversion_constants(guider)
+    fgs_countrate = 10 ** ((mag_conversion + 2.5 * np.log10(sum_throughput / cr_conversion) - fgs_magnitude) / 2.5)
+
+    return fgs_countrate
+
+
+# Helper Functions
+# ----------------
+def get_conversion_constants(guider):
+    """
+    Helper function to pull/calculate and return constants needed for
+    convert_cr_to_fgs_mag and convert_fgs_mag_to_cr functions. The
+    constants it returns are the countrate conversion factor (gain), the
+    magnitude conversion factor, and the trapezoid sum of the throughput
+    of the entire wavelength range.
+
+    Parameters
+    ----------
+    guider : int
+        The guider number, either 1 or 2
+    """
     cr_conversion = globals()['CR_CONVERSION_G{}'.format(guider)]
     throughput = globals()['THROUGHPUT_G{}'.format(guider)]
     mag_conversion = globals()['MAG_CONVERSION_G{}'.format(guider)]
 
     df = pd.DataFrame(throughput.items(), index=np.arange(len(throughput)), columns=['Wavelength', 'Throughput'])
     sum_throughput = utils.trapezoid_sum(df, 'Throughput')
-    fgs_countrate = 10 ** ((mag_conversion + 2.5 * np.log10(sum_throughput / cr_conversion) - fgs_magnitude) / 2.5)
 
-    return fgs_countrate
+    return cr_conversion, mag_conversion, sum_throughput
