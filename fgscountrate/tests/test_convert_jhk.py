@@ -200,9 +200,9 @@ def test_tmass_to_jhk():
     assert k_tup == k_ser
 
     # Check conversion function matches hand-check here
-    assert j_ser == input_j
-    assert h_ser == input_h
-    assert k_ser == input_k
+    assert np.isclose(j_ser, input_j, 1e-5)
+    assert np.isclose(h_ser, input_h, 1e-5)
+    assert np.isclose(k_ser, input_k, 1e-5)
 
     # Check uncertainties
     assert np.isclose(j_err_ser, input_j_err, 1e-5)
@@ -238,26 +238,20 @@ def test_sdssgz_to_jhk():
     h_tup, h_err_tup = conversions.convert_sdssgz_to_jhk(data=data, output_mag='H')
     k_tup, k_err_tup = conversions.convert_sdssgz_to_jhk(data=data, output_mag='K')
 
-    # Do calculation
-    val = input_g - input_z
-    output_j = input_g - 0.59 - 1.54*val + 0.20*val**2 - 0.04*val**3 + 0.002*val**4
-    output_h = input_g - 0.77 - 1.78*val + 0.08*val**2 - 0.04*val**3 + 0.009*val**4
-    output_k = input_g - 0.87 - 1.70*val + 0.01*val**2 - 0.07*val**3 + 0.001*val**4
-
     # Check tuple and series input produces same result
     assert j_tup == j_ser
     assert h_tup == h_ser
     assert k_tup == k_ser
 
     # Check conversion function matches hand-check here
-    assert j_ser == output_j
-    assert h_ser == output_h
-    assert k_ser == output_k
+    assert np.isclose(j_ser, 11.191999999999998, 1e-5)
+    assert np.isclose(h_ser, 11.041, 1e-5)
+    assert np.isclose(k_ser, 10.749, 1e-5)
 
     # Check uncertainties
     assert np.isclose(j_err_ser, 0.27265120293170503, 1e-5)
-    assert np.isclose(h_err_ser, 0.28721836344780965, 1e-5)
-    assert np.isclose(k_err_ser, 0.2946740530383989, 1e-5)
+    assert np.isclose(h_err_ser, 0.24635741034709235, 1e-5)
+    assert np.isclose(k_err_ser, 0.2439674603454265, 1e-5)
 
 
 def test_sdssgi_to_jhk():
@@ -288,21 +282,15 @@ def test_sdssgi_to_jhk():
     h_tup, h_err_tup = conversions.convert_sdssgi_to_jhk(data=data, output_mag='H')
     k_tup, k_err_tup = conversions.convert_sdssgi_to_jhk(data=data, output_mag='K')
 
-    # Do calculation
-    val = input_g - input_i
-    output_j = input_g - 0.411 - 2.260*val + 0.826*val**2 - 0.317*val**3 + 0.037*val**4
-    output_h = input_g - 0.597 - 2.400*val + 0.450*val**2 - 0.078*val**3 + 0.00025*val**4
-    output_k = input_g - 0.637 - 2.519*val + 0.568*val**2 - 0.151*val**3 + 0.013*val**4
-
     # Check tuple and series input produces same result
     assert j_tup == j_ser
     assert h_tup == h_ser
     assert k_tup == k_ser
 
     # Check conversion function matches hand-check here
-    assert j_ser == output_j
-    assert h_ser == output_h
-    assert k_ser == output_k
+    assert np.isclose(j_ser, 13.029000000000002, 1e-5)
+    assert np.isclose(h_ser, 12.331249999999999, 1e-5)
+    assert np.isclose(k_ser, 12.613999999999999, 1e-5)
 
     # Check uncertainties
     assert np.isclose(j_err_ser, 0.700281564042489, 1e-5)
@@ -337,21 +325,15 @@ def test_sdssiz_to_jhk():
     h_tup, h_err_tup = conversions.convert_sdssiz_to_jhk(data=data, output_mag='H')
     k_tup, k_err_tup = conversions.convert_sdssiz_to_jhk(data=data, output_mag='K')
 
-    # Do calculation
-    val = input_i - input_z
-    output_j = input_i - 0.794 - 2.839*val + 3.071*val**2 - 3.139*val**3 + 1.164*val**4
-    output_h = input_i - 1.051 - 5.361*val + 8.398*val**2 - 7.240*val**3 + 2.111*val**4
-    output_k = input_i - 1.127 - 5.379*val + 6.454*val**2 - 3.499*val**3 + 0.057*val**4
-
     # Check tuple and series input produces same result
     assert j_tup == j_ser
     assert h_tup == h_ser
     assert k_tup == k_ser
 
     # Check conversion function matches hand-check here
-    assert j_ser == output_j
-    assert h_ser == output_h
-    assert k_ser == output_k
+    assert np.isclose(j_ser, 19.419, 1e-5)
+    assert np.isclose(h_ser, 32.059, 1e-5)
+    assert np.isclose(k_ser, 24.261999999999997, 1e-5)
 
     # Check uncertainties
     assert np.isclose(j_err_ser, 3.4386988607490627, 1e-5)
@@ -387,21 +369,15 @@ def test_gsc2bjin_to_jhk():
     h_tup, h_err_tup = conversions.convert_gsc2bjin_to_jhk(data=data, output_mag='H')
     k_tup, k_err_tup = conversions.convert_gsc2bjin_to_jhk(data=data, output_mag='K')
 
-    # Do calculation
-    val = input_bj - input_in
-    output_j = input_bj - 1.30*val - 0.15
-    output_h = input_bj + 0.06*val**2 - 1.71*val - 0.10
-    output_k = input_bj + 0.06*val**2 - 1.78*val - 0.11
-
     # Check tuple and series input produces same result
     assert j_tup == j_ser
     assert h_tup == h_ser
     assert k_tup == k_ser
 
     # Check conversion function matches hand-check here
-    assert j_ser == output_j
-    assert h_ser == output_h
-    assert k_ser == output_k
+    assert np.isclose(j_ser, 11.15, 1e-5)
+    assert np.isclose(h_ser, 11.67, 1e-5)
+    assert np.isclose(k_ser, 11.73, 1e-5)
 
     # Check uncertainties
     assert np.isclose(j_err_ser, 0.24527127838375157, 1e-5)
@@ -437,21 +413,15 @@ def test_gsc2rfin_to_jhk():
     h_tup, h_err_tup = conversions.convert_gsc2rfin_to_jhk(data=data, output_mag='H')
     k_tup, k_err_tup = conversions.convert_gsc2rfin_to_jhk(data=data, output_mag='K')
 
-    # Do calculation
-    val = input_rf - input_in
-    output_j = input_rf + 0.01*val**2 - 1.56*val - 0.44
-    output_h = input_rf + 0.25*val**2 - 2.17*val - 0.67
-    output_k = input_rf + 0.28*val**2 - 2.35*val - 0.73
-
     # Check tuple and series input produces same result
     assert j_tup == j_ser
     assert h_tup == h_ser
     assert k_tup == k_ser
 
     # Check conversion function matches hand-check here
-    assert j_ser == output_j
-    assert h_ser == output_h
-    assert k_ser == output_k
+    assert np.isclose(j_ser, 11.13, 1e-5)
+    assert np.isclose(h_ser, 11.75, 1e-5)
+    assert np.isclose(k_ser, 11.899999999999999, 1e-4)
 
     # Check uncertainties
     assert np.isclose(j_err_ser, 0.30678481748776193, 1e-5)
@@ -487,21 +457,15 @@ def test_gsc2bjrf_to_jhk():
     h_tup, h_err_tup = conversions.convert_gsc2bjrf_to_jhk(data=data, output_mag='H')
     k_tup, k_err_tup = conversions.convert_gsc2bjrf_to_jhk(data=data, output_mag='K')
 
-    # Do calculation
-    val = input_bj - input_rf
-    output_j = input_bj - 0.39*val**2 - 0.96*val - 0.55
-    output_h = input_bj - 0.24*val**2 - 1.66*val - 0.41
-    output_k = input_bj - 0.26*val**2 - 1.70*val - 0.45
-
     # Check tuple and series input produces same result
     assert j_tup == j_ser
     assert h_tup == h_ser
     assert k_tup == k_ser
 
     # Check conversion function matches hand-check here
-    assert j_ser == output_j
-    assert h_ser == output_h
-    assert k_ser == output_k
+    assert np.isclose(j_ser, 10.02, 1e-5)
+    assert np.isclose(h_ser, 11.01, 1e-5)
+    assert np.isclose(k_ser, 10.99, 1e-5)
 
     # Check uncertainties
     assert np.isclose(j_err_ser, 0.3268272426848776, 1e-5)
