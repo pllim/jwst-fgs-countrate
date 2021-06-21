@@ -200,7 +200,7 @@ def test_tmass_to_jhk():
     assert k_tup == k_ser
 
     # Check conversion function matches hand-check here
-    assert np.isclose(j_ser,  input_j, 1e-5)
+    assert np.isclose(j_ser, input_j, 1e-5)
     assert np.isclose(h_ser, input_h, 1e-5)
     assert np.isclose(k_ser, input_k, 1e-5)
 
