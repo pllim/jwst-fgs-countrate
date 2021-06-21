@@ -113,7 +113,7 @@ def convert_sdssgz_to_jhk(data, output_mag):
         return j, j_err
     elif output_mag.upper() == 'H':
         def calc_h(g, z):
-            return g - 0.77 - 1.78 * (g - z) + 0.08 * (g - z) ** 2 - 0.04 * (g - z) ** 3 + 0.009 * (g - z) ** 4
+            return g - 0.77 - 1.78 * (g - z) + 0.08 * (g - z) ** 2 + 0.04 * (g - z) ** 3 - 0.009 * (g - z) ** 4
         h = calc_h(g_mag, z_mag)
         err_h_g = calc_h(g_mag + g_err, z_mag) - h
         err_h_z = calc_h(g_mag, z_mag + z_err) - h
@@ -122,7 +122,7 @@ def convert_sdssgz_to_jhk(data, output_mag):
         return h, h_err
     elif output_mag.upper() == 'K':
         def calc_k(g, z):
-            return g - 0.87 - 1.70 * (g - z) + 0.01 * (g - z) ** 2 - 0.07 * (g - z) ** 3 + 0.001 * (g - z) ** 4
+            return g - 0.87 - 1.70 * (g - z) - 0.01 * (g - z) ** 2 + 0.07 * (g - z) ** 3 - 0.001 * (g - z) ** 4
         k = calc_k(g_mag, z_mag)
         err_k_g = calc_k(g_mag + g_err, z_mag) - k
         err_k_z = calc_k(g_mag, z_mag + z_err) - k
