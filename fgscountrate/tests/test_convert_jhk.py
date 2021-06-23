@@ -53,11 +53,7 @@ def test_convert_mag_to_jhk():
             data2 = copy.copy(fgs.gsc_series)
             for i in delete_list:
                 data2[i] = -999
-            try:
-                fgs.calc_jhk_mag(data=data2)
-                error = False
-            except ValueError:
-                error = True
+            fgs.calc_jhk_mag(data=data2)
 
             # Compare output to here
             method_names = []
@@ -80,26 +76,15 @@ def test_convert_mag_to_jhk():
                     method_name_test = "convert_gsc2bjrf_to_jhk"
 
                 else:
-                    method_name_test = 'cannot_convert_to_jhk'
+                    method_name_test = 'cannot_calculate'
 
                 method_names.append(method_name_test)
 
-                if method_name_test != getattr(fgs, f'{i[5].lower()}_convert_method'):
-                    if error is False:
-                        print(subset)
-                        print("    **", error, method_name_test, getattr(fgs, f'{i[5].lower()}_convert_method'))
+                failure_message = f'For input {list(subset)} and band {i[5]}: the test called {method_name_test} ' \
+                                  f'while the calc_jhk_mag method called ' \
+                                  f'{getattr(fgs, f"{i[5].lower()}_convert_method")}'
 
-                # If you could compute the JHK mags, check the same conversion method as used
-                if error is False:
-                    failure_message = f'For input {list(subset)} and band {i[5]}: the test called {method_name_test} ' \
-                                      f'while the calc_jhk_mag method called ' \
-                                      f'{getattr(fgs, f"{i[5].lower()}_convert_method")}'
-
-                    assert method_name_test == getattr(fgs, f'{i[5].lower()}_convert_method'), failure_message
-
-            # If you can't compute the JHK mags, check methods agree it's not possible
-            if error is True:
-                assert 'cannot_convert_to_jhk' in method_names
+                assert method_name_test == getattr(fgs, f'{i[5].lower()}_convert_method'), failure_message
 
 
 testdata = [
@@ -155,10 +140,15 @@ def test_check_band_below_faint_limits_failure():
 
     fgs = FGSCountrate(guide_star_id="N13I000018", guider=1)
 
+    _ = fgs.calc_jhk_mag(data)
+
+    assert fgs.j_convert_method == 'cannot_calculate'
+    assert fgs.h_convert_method == 'cannot_calculate'
+    assert fgs.k_convert_method == 'cannot_calculate'
+
     with pytest.raises(Exception) as e_info:
-        fgs.calc_jhk_mag(data)
-    assert 'There is not enough information on this guide star' in str(e_info.value)
-    assert 'tmassJMag' in str(e_info.value)
+        fgs.calc_fgs_cr_mag_and_err()
+    assert 'Cannot compute FGS countrate & magnitude for a guide star' in str(e_info.value)
 
 
 def test_tmass_to_jhk():
