@@ -174,7 +174,7 @@ class FGSCountrate:
         if len(data_frame) == 1:
             self.gsc_series = data_frame.iloc[0]
         else:
-            raise ValueError("This Guide Star ID points to multiple lines in {}".format(catalog))
+            raise ValueError(f"This Guide Star ID points to multiple lines in {catalog}")
 
         # Convert to JHK magnitudes
         self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err = \
@@ -246,15 +246,15 @@ class FGSCountrate:
                         continue
 
                     # Set the conversion method
-                    setattr(self, '{}_convert_method'.format(i[5].lower()), value)
+                    setattr(self, f'{i[5].lower()}_convert_method', value)
                     break
 
             # Return -999 if the band cannot be calculated
-            if getattr(self, '{}_convert_method'.format(i[5].lower())) is None:
-                setattr(self, '{}_convert_method'.format(i[5].lower()), 'cannot_calculate')
+            if getattr(self, f'{i[5].lower()}_convert_method') is None:
+                setattr(self, f'{i[5].lower()}_convert_method', 'cannot_calculate')
 
             # Get the method
-            method = getattr(conversions, getattr(self, '{}_convert_method'.format(i[5].lower())), lambda: "Invalid")
+            method = getattr(conversions, getattr(self, f'{i[5].lower()}_convert_method'), lambda: "Invalid")
             method_list.append(method)
 
         # Create a new series with the edited data (in case uncertainties were replaced)
@@ -360,8 +360,8 @@ class FGSCountrate:
 
         # Can't compute if we only have J, H, and K  # TODO will be changed later
         if {'tmassJMag', 'tmassHMag', 'tmassKsMag'} == set(self._present_calculated_mags):
-            raise ValueError('Cannot compute FGS countrate & magnitude for a guide star ({}) with only 2MASS '
-                             'data'.format(self.id))
+            raise ValueError(f'Cannot compute FGS countrate & magnitude for a guide star ({self.id}) with only 2MASS '
+                             'data')
 
         # Reset the shortest/2nd shortest bands to 0 if they are missing
         if df.at['JpgMag', 'Signal'] == -999:
@@ -383,7 +383,7 @@ class FGSCountrate:
 
         # Compute FGS magnitude
         sum_throughput = utils.trapezoid_sum(df_short, 'Throughput')
-        mag_conversion = globals()['MAG_CONVERSION_G{}'.format(self.guider)]
+        mag_conversion = globals()[f'MAG_CONVERSION_G{self.guider}']
         fgs_magnitude = -2.5 * np.log10(electrons / sum_throughput) + mag_conversion
 
         if to_compute.lower() == 'magnitude' or to_compute.lower() == 'both':
@@ -414,8 +414,8 @@ class FGSCountrate:
         """
 
         # Set values based on guider
-        throughput_dict = globals()['THROUGHPUT_G{}'.format(self.guider)]
-        cr_conversion = globals()['CR_CONVERSION_G{}'.format(self.guider)]
+        throughput_dict = globals()[f'THROUGHPUT_G{self.guider}']
+        cr_conversion = globals()[f'CR_CONVERSION_G{self.guider}']
 
         # Create new attributes with updated series
         # Choose either SDSS or GSC - don't include both, to match GSSS
@@ -538,9 +538,9 @@ def get_conversion_constants(guider):
     guider : int
         The guider number, either 1 or 2
     """
-    cr_conversion = globals()['CR_CONVERSION_G{}'.format(guider)]
-    throughput = globals()['THROUGHPUT_G{}'.format(guider)]
-    mag_conversion = globals()['MAG_CONVERSION_G{}'.format(guider)]
+    cr_conversion = globals()[f'CR_CONVERSION_G{guider}']
+    throughput = globals()[f'THROUGHPUT_G{guider}']
+    mag_conversion = globals()[f'MAG_CONVERSION_G{guider}']
 
     df = pd.DataFrame(throughput.items(), index=np.arange(len(throughput)), columns=['Wavelength', 'Throughput'])
     sum_throughput = utils.trapezoid_sum(df, 'Throughput')

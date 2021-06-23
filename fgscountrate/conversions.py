@@ -54,8 +54,8 @@ def convert_tmass_to_jhk(data, output_mag):
             k_mag = data[0]
             k_err = data[1]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (mag, mag_err) or a pd.Series output "
-                        "from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         return j_mag, j_err
@@ -99,8 +99,8 @@ def convert_sdssgz_to_jhk(data, output_mag):
         z_mag = data[2]
         z_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (g,g_err,z,z_err) or a pd.Series output "
-                        "from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(g, z):
@@ -165,8 +165,8 @@ def convert_sdssgi_to_jhk(data, output_mag):
         i_mag = data[2]
         i_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (g,g_err,i,i_err) or a pd.Series output "
-                        "from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(g, i):
@@ -231,8 +231,8 @@ def convert_sdssiz_to_jhk(data, output_mag):
         z_mag = data[2]
         z_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (i,i_err,z,z_err) or a pd.Series output "
-                        "from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(i, z):
@@ -297,8 +297,8 @@ def convert_gsc2bjin_to_jhk(data, output_mag):
         i_n_mag = data[2]
         i_n_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (b_j,b_j_err,i_n,i_n_err) "
-                        "or a pd.Series output from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(b_j, i_n): return b_j - 1.30 * (b_j - i_n) - 0.15
@@ -360,8 +360,8 @@ def convert_gsc2rfin_to_jhk(data, output_mag):
         i_n_mag = data[2]
         i_n_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (r_f,r_f_err,i_n,i_n_err) or a "
-                        "pd.Series output from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(r_f, i_n): return r_f + 0.01 * (r_f - i_n) ** 2 - 1.56 * (r_f - i_n) - 0.44
@@ -423,8 +423,8 @@ def convert_gsc2bjrf_to_jhk(data, output_mag):
         r_f_mag = data[2]
         r_f_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (b_j,b_j_err,r_f,r_f_err) or a "
-                        "pd.Series output from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(b_j, r_f): return b_j - 0.39 * (b_j - r_f) ** 2 - 0.96 * (b_j - r_f) - 0.55

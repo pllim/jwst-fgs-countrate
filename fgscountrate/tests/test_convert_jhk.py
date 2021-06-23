@@ -65,18 +65,18 @@ def test_convert_mag_to_jhk():
                 if i in list(subset):
                     method_name_test = "convert_tmass_to_jhk"
 
-                elif set(['SDSSgMag', 'SDSSzMag']).issubset(subset):
+                elif {'SDSSgMag', 'SDSSzMag'}.issubset(subset):
                     method_name_test = "convert_sdssgz_to_jhk"
-                elif set(['SDSSgMag', 'SDSSiMag']).issubset(subset):
+                elif {'SDSSgMag', 'SDSSiMag'}.issubset(subset):
                     method_name_test = "convert_sdssgi_to_jhk"
-                elif set(['SDSSiMag', 'SDSSzMag']).issubset(subset):
+                elif {'SDSSiMag', 'SDSSzMag'}.issubset(subset):
                     method_name_test = "convert_sdssiz_to_jhk"
 
-                elif set(['JpgMag', 'NpgMag']).issubset(subset):
+                elif {'JpgMag', 'NpgMag'}.issubset(subset):
                     method_name_test = "convert_gsc2bjin_to_jhk"
-                elif set(['FpgMag', 'NpgMag']).issubset(subset):
+                elif {'FpgMag', 'NpgMag'}.issubset(subset):
                     method_name_test = "convert_gsc2rfin_to_jhk"
-                elif set(['JpgMag', 'FpgMag']).issubset(subset):
+                elif {'JpgMag', 'FpgMag'}.issubset(subset):
                     method_name_test = "convert_gsc2bjrf_to_jhk"
 
                 else:
@@ -84,18 +84,18 @@ def test_convert_mag_to_jhk():
 
                 method_names.append(method_name_test)
 
-                if method_name_test != getattr(fgs, '{}_convert_method'.format(i[5].lower())):
+                if method_name_test != getattr(fgs, f'{i[5].lower()}_convert_method'):
                     if error is False:
                         print(subset)
-                        print("    **", error, method_name_test, getattr(fgs, '{}_convert_method'.format(i[5].lower())))
+                        print("    **", error, method_name_test, getattr(fgs, f'{i[5].lower()}_convert_method'))
 
                 # If you could compute the JHK mags, check the same conversion method as used
                 if error is False:
-                    failure_message = 'For input {} and band {}: the test called {} while the calc_jhk_mag ' \
-                                      'method called {}'.format(list(subset), i[5], method_name_test,
-                                                                getattr(fgs, '{}_convert_method'.format(i[5].lower())))
+                    failure_message = f'For input {list(subset)} and band {i[5]}: the test called {method_name_test} ' \
+                                      f'while the calc_jhk_mag method called ' \
+                                      f'{getattr(fgs, f"{i[5].lower()}_convert_method")}'
 
-                    assert method_name_test == getattr(fgs, '{}_convert_method'.format(i[5].lower())), failure_message
+                    assert method_name_test == getattr(fgs, f'{i[5].lower()}_convert_method'), failure_message
 
             # If you can't compute the JHK mags, check methods agree it's not possible
             if error is True:

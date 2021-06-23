@@ -101,22 +101,22 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     # Set URL
     url = 'http://gsss.stsci.edu/webservices/vo/CatalogSearch.aspx?'
     if gs_id is not None:
-        url = url + 'GSC2ID={}&'.format(gs_id)
+        url = url + f'GSC2ID={gs_id}&'
     if ra is not None:
-        url = url + 'RA={}&'.format(ra)
+        url = url + f'RA={ra}&'
     if dec is not None:
-        url = url + 'DEC={}&'.format(dec)
+        url = url + f'DEC={dec}&'
     if cone_radius is not None:
-        url = url + 'SR={}&'.format(cone_radius)
+        url = url + f'SR={cone_radius}&'
     if minra is not None:
-        url = url + 'BBOX={}%2c'.format(minra)
+        url = url + f'BBOX={minra}%2c'
     if mindec is not None:
-        url = url + '{}%2c'.format(mindec)
+        url = url + f'{mindec}%2c'
     if maxra is not None:
-        url = url + '{}%2c'.format(maxra)
+        url = url + f'{maxra}%2c'
     if maxdec is not None:
-        url = url + '{}&'.format(maxdec)
-    url = url + 'FORMAT={}&CAT={}'.format(file_format, catalog)
+        url = url + f'{maxdec}&'
+    url = url + f'FORMAT={file_format}&CAT={catalog}'
 
     # Query data
     request = requests.get(url).content
@@ -126,7 +126,7 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
         data_frame = pd.read_csv(io.StringIO(request.decode('utf-8')), skiprows=1, na_values=[' '])
         data_frame.replace(np.nan, -999, regex=True, inplace=True)
     except pd.errors.EmptyDataError:
-        raise NameError("No guide stars match these requirements in catalog {}".format(catalog))
+        raise NameError(f"No guide stars match these requirements in catalog {catalog}")
 
     # Update header to new capitalization if using an old GSC version
     if catalog in ['GSC2412', 'GSC241']:
