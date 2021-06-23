@@ -222,8 +222,9 @@ class FGSCountrate:
         self._present_queried_mags = list(self._all_queried_mag_series[self._all_queried_mag_series != -999].index)
 
         # Dictionary of convert methods
+        tmass_list = ['tmassJMag', 'tmassHMag', 'tmassKsMag']
         method_list = []
-        for i in ['tmassJMag', 'tmassHMag', 'tmassKsMag']:
+        for i in tmass_list:
             switcher = OrderedDict([
                 (i, 'convert_tmass_to_jhk'),
                 ('SDSSgMag, SDSSzMag',  'convert_sdssgz_to_jhk'),
@@ -264,6 +265,18 @@ class FGSCountrate:
         self.j_mag, self.j_mag_err = method_list[0](data=edited_data_series, output_mag='J')
         self.h_mag, self.h_mag_err = method_list[1](data=edited_data_series, output_mag='H')
         self.k_mag, self.k_mag_err = method_list[2](data=edited_data_series, output_mag='K')
+
+        # Update any calculated J, H, and K values
+        self._all_calculated_mag_series = copy.deepcopy(self._all_queried_mag_series)
+        self._all_calculated_mag_series.loc[tmass_list] = self.j_mag, self.h_mag, self.k_mag
+
+        self._all_calculated_mag_err_series = copy.deepcopy(self._all_queried_mag_err_series)
+        self._all_calculated_mag_err_series.loc[[name+'Err' for name in tmass_list]] = \
+            self.j_mag_err, self.h_mag_err, self.k_mag_err
+
+        good_tmass = [name for name, mag in zip(tmass_list, [self.j_mag, self.h_mag, self.k_mag]) if mag != -999]
+        self._present_calculated_mags = self._present_queried_mags + [a for a in good_tmass
+                                                                      if a not in self._present_queried_mags]
 
         return self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err
 
@@ -310,6 +323,7 @@ class FGSCountrate:
 
         # Create initial dataframe
         df = pd.DataFrame(GSC_BAND_WAVELENGTH, columns=['Wavelength'], index=GSC_BAND_NAMES)
+        df = df.loc[band_series.index]
 
         # Add magnitudes
         df = pd.concat([df, band_series], axis=1, sort=True)
@@ -364,9 +378,9 @@ class FGSCountrate:
                              'data')
 
         # Reset the shortest/2nd shortest bands to 0 if they are missing
-        if df.at['JpgMag', 'Signal'] == -999:
+        if 'JpgMag' in df.index and df.at['JpgMag', 'Signal'] == -999:
             df.at['JpgMag', 'Signal'] = 0
-        if df.at['SDSSgMag', 'Signal'] == -999:
+        if 'SDSSgMag' in df.index and df.at['SDSSgMag', 'Signal'] == -999:
             df.at['SDSSgMag', 'Signal'] = 0
 
         # Throw out any bands for which you don't have data
@@ -417,23 +431,19 @@ class FGSCountrate:
         throughput_dict = globals()[f'THROUGHPUT_G{self.guider}']
         cr_conversion = globals()[f'CR_CONVERSION_G{self.guider}']
 
-        # Create new attributes with updated series
-        # Choose either SDSS or GSC - don't include both, to match GSSS
-        if True in ['sdss' in substring.lower() for substring in self._present_queried_mags]:
-            l = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'sdss' in band.lower()]
-        elif True in ['gsc' in substring.lower() for substring in self._present_queried_mags]:
-            l = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'gsc' in band.lower()]
+        # Update attributes with updated series - choose either SDSS or GSC - don't include both, to match GSSS
+        if True in ['sdss' in substring.lower() for substring in self._present_calculated_mags]:
+            all_list = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'sdss' in band.lower()]
+            present_list = [band for band in self._present_calculated_mags if 'tmass' in band.lower() or 'sdss' in band.lower()]
+        elif True in ['gsc' in substring.lower() for substring in self._present_calculated_mags]:
+            all_list = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'gsc' in band.lower()]
+            present_list = [band for band in self._present_calculated_mags if 'tmass' in band.lower() or 'gsc' in band.lower()]
         else:
-            l = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower()]
-        self._all_calculated_mag_series = self._all_queried_mag_series.loc[l]
-        self._all_calculated_mag_err_series = self._all_queried_mag_err_series.loc[[name+'Err' for name in l]]
-        self._present_calculated_mags = list(self._all_calculated_mag_series[self._all_calculated_mag_series
-                                                                             != -999].index)
-        # Update any calculated J, H, and K values
-        self._all_calculated_mag_series.loc[['tmassJMag', 'tmassHMag', 'tmassKsMag']] = \
-            self.j_mag, self.h_mag, self.k_mag
-        self._all_calculated_mag_err_series.loc[['tmassJMagErr', 'tmassHMagErr', 'tmassKsMagErr']] = \
-            self.j_mag_err, self.h_mag_err, self.k_mag_err
+            all_list = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower()]
+            present_list = [band for band in self._present_calculated_mags if 'tmass' in band.lower()]
+        self._all_calculated_mag_series = self._all_calculated_mag_series.loc[all_list]
+        self._all_calculated_mag_err_series = self._all_calculated_mag_err_series.loc[[name+'Err' for name in all_list]]
+        self._present_calculated_mags = present_list
 
         # Check if we need to skip the star - if still missing J or K, cannot compute values for star
         if 'tmassJMag' not in self._present_calculated_mags or 'tmassKsMag' not in self._present_calculated_mags:
