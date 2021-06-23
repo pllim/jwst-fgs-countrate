@@ -249,8 +249,9 @@ class FGSCountrate:
                     setattr(self, '{}_convert_method'.format(i[5].lower()), value)
                     break
 
+            # Return -999 if the band cannot be calculated
             if getattr(self, '{}_convert_method'.format(i[5].lower())) is None:
-                raise ValueError('There is not enough information on this guide star to get its {} magnitude'.format(i))
+                setattr(self, '{}_convert_method'.format(i[5].lower()), 'cannot_calculate')
 
             # Get the method
             method = getattr(conversions, getattr(self, '{}_convert_method'.format(i[5].lower())), lambda: "Invalid")

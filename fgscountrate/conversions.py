@@ -452,3 +452,12 @@ def convert_gsc2bjrf_to_jhk(data, output_mag):
         return k, k_err
     else:
         raise ValueError("output_mag must be set to either J, H, or K")
+
+
+def cannot_calculate(**kwargs):
+    """
+    Helper function to be called when there is not enough available data
+    to preform a J, H, or K calculation. In this case, we'll return -999
+    for the band and error.
+    """
+    return -999, -999
