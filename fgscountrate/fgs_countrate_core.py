@@ -425,16 +425,20 @@ class FGSCountrate:
             l = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'gsc' in band.lower()]
         else:
             l = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower()]
-
         self._all_calculated_mag_series = self._all_queried_mag_series.loc[l]
         self._all_calculated_mag_err_series = self._all_queried_mag_err_series.loc[[name+'Err' for name in l]]
-        self._present_calculated_mags = l
-
+        self._present_calculated_mags = list(self._all_calculated_mag_series[self._all_calculated_mag_series
+                                                                             != -999].index)
         # Update any calculated J, H, and K values
         self._all_calculated_mag_series.loc[['tmassJMag', 'tmassHMag', 'tmassKsMag']] = \
             self.j_mag, self.h_mag, self.k_mag
         self._all_calculated_mag_err_series.loc[['tmassJMagErr', 'tmassHMagErr', 'tmassKsMagErr']] = \
             self.j_mag_err, self.h_mag_err, self.k_mag_err
+
+        # Check if we need to skip the star - if still missing J or K, cannot compute values for star
+        if 'tmassJMag' not in self._present_calculated_mags or 'tmassKsMag' not in self._present_calculated_mags:
+            raise ValueError(f'Cannot compute FGS countrate & magnitude for a guide star {self.id} '
+                             f'because it is missing too many bands.')
 
         # Calculate magnitude/countrate
         self.fgs_countrate, self.fgs_magnitude, self.band_dataframe = \
