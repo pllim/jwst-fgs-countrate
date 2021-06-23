@@ -264,25 +264,6 @@ class FGSCountrate:
         self.h_mag, self.h_mag_err = method_list[1](data=edited_data_series, output_mag='H')
         self.k_mag, self.k_mag_err = method_list[2](data=edited_data_series, output_mag='K')
 
-        # Create new attributes with updated series
-        # Choose either SDSS or GSC - don't include both, to match GSSS
-        if True in ['sdss' in substring.lower() for substring in self._present_queried_mags]:
-            l = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'sdss' in band.lower()]
-        elif True in ['gsc' in substring.lower() for substring in self._present_queried_mags]:
-            l = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'gsc' in band.lower()]
-        else:
-            l = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower()]
-
-        self._all_calculated_mag_series = self._all_queried_mag_series.loc[l]
-        self._all_calculated_mag_err_series = self._all_queried_mag_err_series.loc[[name+'Err' for name in l]]
-        self._present_calculated_mags = l
-
-        # Add J, H, and K values
-        self._all_calculated_mag_series.loc[['tmassJMag', 'tmassHMag', 'tmassKsMag']] = \
-            self.j_mag, self.h_mag, self.k_mag
-        self._all_calculated_mag_err_series.loc[['tmassJMagErr', 'tmassHMagErr', 'tmassKsMagErr']] = \
-            self.j_mag_err, self.h_mag_err, self.k_mag_err
-
         return self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err
 
     def _calc_fgs_cr_mag(self, to_compute, band_series, guider_throughput, guider_gain, return_dataframe=False):
@@ -434,6 +415,25 @@ class FGSCountrate:
         # Set values based on guider
         throughput_dict = globals()['THROUGHPUT_G{}'.format(self.guider)]
         cr_conversion = globals()['CR_CONVERSION_G{}'.format(self.guider)]
+
+        # Create new attributes with updated series
+        # Choose either SDSS or GSC - don't include both, to match GSSS
+        if True in ['sdss' in substring.lower() for substring in self._present_queried_mags]:
+            l = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'sdss' in band.lower()]
+        elif True in ['gsc' in substring.lower() for substring in self._present_queried_mags]:
+            l = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'gsc' in band.lower()]
+        else:
+            l = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower()]
+
+        self._all_calculated_mag_series = self._all_queried_mag_series.loc[l]
+        self._all_calculated_mag_err_series = self._all_queried_mag_err_series.loc[[name+'Err' for name in l]]
+        self._present_calculated_mags = l
+
+        # Update any calculated J, H, and K values
+        self._all_calculated_mag_series.loc[['tmassJMag', 'tmassHMag', 'tmassKsMag']] = \
+            self.j_mag, self.h_mag, self.k_mag
+        self._all_calculated_mag_err_series.loc[['tmassJMagErr', 'tmassHMagErr', 'tmassKsMagErr']] = \
+            self.j_mag_err, self.h_mag_err, self.k_mag_err
 
         # Calculate magnitude/countrate
         self.fgs_countrate, self.fgs_magnitude, self.band_dataframe = \
