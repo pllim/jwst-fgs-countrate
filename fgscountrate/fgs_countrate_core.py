@@ -372,11 +372,6 @@ class FGSCountrate:
 
         df['Signal'] = df.apply(lambda row: calc_signal(row), axis=1)
 
-        # Can't compute if we only have J, H, and K  # TODO will be changed later
-        if {'tmassJMag', 'tmassHMag', 'tmassKsMag'} == set(self._present_calculated_mags):
-            raise ValueError(f'Cannot compute FGS countrate & magnitude for a guide star ({self.id}) with only 2MASS '
-                             'data')
-
         # Reset the shortest/2nd shortest bands to 0 if they are missing
         if 'JpgMag' in df.index and df.at['JpgMag', 'Signal'] == -999:
             df.at['JpgMag', 'Signal'] = 0
