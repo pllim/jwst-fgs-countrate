@@ -372,11 +372,13 @@ class FGSCountrate:
 
         df['Signal'] = df.apply(lambda row: calc_signal(row), axis=1)
 
-        # Reset the shortest/2nd shortest bands to 0 if they are missing
-        if 'JpgMag' in df.index and df.at['JpgMag', 'Signal'] == -999:
-            df.at['JpgMag', 'Signal'] = 0
-        if 'SDSSgMag' in df.index and df.at['SDSSgMag', 'Signal'] == -999:
-            df.at['SDSSgMag', 'Signal'] = 0
+        # Commenting out to match GSS code - may add back in later
+        # Also SDSSu is lower than SDSSg, so why did we do this with g?
+        # # Reset the shortest/2nd shortest bands to 0 if they are missing
+        # if 'JpgMag' in df.index and df.at['JpgMag', 'Signal'] == -999:
+        #     df.at['JpgMag', 'Signal'] = 0
+        # if 'SDSSgMag' in df.index and df.at['SDSSgMag', 'Signal'] == -999:
+        #     df.at['SDSSgMag', 'Signal'] = 0
 
         # Throw out any bands for which you don't have data
         df_short = df[df['Signal'] != -999]
