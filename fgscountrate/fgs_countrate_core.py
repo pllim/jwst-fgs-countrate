@@ -184,10 +184,14 @@ class FGSCountrate:
 
                 if set(key_list).issubset(self._present_queried_mags):
 
-                    # Check for faint star limits
                     mags = self._all_queried_mag_series[key_list].values
+                    # Check for faint star limits
                     if utils.check_band_below_faint_limits(key_list, mags):
                         continue
+                    # Check if SDSS-GZ has okay limits
+                    if key == 'SDSSgMag, SDSSzMag':
+                        if utils.check_sdss_gz_limits(mags):
+                            continue
 
                     # Set the conversion method
                     setattr(self, f'{i[5].lower()}_convert_method', value)

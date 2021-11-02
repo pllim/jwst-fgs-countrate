@@ -158,6 +158,29 @@ def check_band_below_faint_limits(bands, mags):
     return False
 
 
+def check_sdss_gz_limits(mags):
+    """
+    Check if we can use the SDSSS G-Z conversion at the blue and
+    red end of the spectrum.
+
+    Parameters
+    ----------
+    mags : list
+        Magnitudes of the SDSS G and Z bands, in order
+
+    Returns
+    -------
+    bool : True if SDSS-GZ cannot be used. False if it can
+    """
+    g = mags[0]
+    z = mags[1]
+
+    if g-z > 5 or g-z < -1:
+        return True
+    else:
+        return False
+
+
 def trapezoid_sum(df, col, col2='Wavelength'):
     """
     Sum across a Pandas dataframe of values
