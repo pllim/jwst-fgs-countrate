@@ -120,55 +120,6 @@ def test_convert_fgs_mag_to_cr():
     assert np.isclose(cr, expected_cr, 1)
 
 
-def test_faint_limits():
-    """Test that when SDSSgMag is below the faint limit, that conversion is skipped"""
-
-    gs_id = 'N13I000018'
-    guider = 1
-    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-
-    # Reset data to a set of constant, fake data with SDSS_g too dim and tmass missing
-    fgs.gsc_series = GSC_SERIES
-    fgs.gsc_series['tmassJMag'] = -999
-    fgs.gsc_series['tmassHMag'] = -999
-    fgs.gsc_series['tmassKsMag'] = -999
-    fgs.gsc_series['SDSSgMag'] = 25
-
-    # Convert to JHK magnitudes
-    fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
-        fgs.calc_jhk_mag(fgs.gsc_series)
-
-    # Check that the conversion methods are the SDSS ones that don't include SDSS_g
-    assert fgs.j_convert_method == 'convert_sdssiz_to_jhk'
-    assert fgs.h_convert_method == 'convert_sdssiz_to_jhk'
-    assert fgs.k_convert_method == 'convert_sdssiz_to_jhk'
-
-
-def test_bad_sdss_gz_limits():
-    """Test that when SDSSgMag and SDSSzMag color differences are bad, that conversion is skipped"""
-
-    gs_id = 'N13I000018'
-    guider = 1
-    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
-
-    # Reset data to a set of constant, fake data with SDSS_g and z having bad color ranges and tmass missing
-    fgs.gsc_series = GSC_SERIES
-    fgs.gsc_series['tmassJMag'] = -999
-    fgs.gsc_series['tmassHMag'] = -999
-    fgs.gsc_series['tmassKsMag'] = -999
-    fgs.gsc_series['SDSSgMag'] = 20
-    fgs.gsc_series['SDSSzMag'] = 14
-
-    # Convert to JHK magnitudes
-    fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
-        fgs.calc_jhk_mag(fgs.gsc_series)
-
-    # Check that the conversion methods is the SDSS one after SDSS g-z
-    assert fgs.j_convert_method == 'convert_sdssgi_to_jhk'
-    assert fgs.h_convert_method == 'convert_sdssgi_to_jhk'
-    assert fgs.k_convert_method == 'convert_sdssgi_to_jhk'
-
-
 def test_band_missing():
     """Test that when a band (SDSS_g) is missing, it's signal is set to 0"""
 
