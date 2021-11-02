@@ -146,6 +146,43 @@ def test_band_missing():
     assert fgs.band_dataframe.at['SDSSgMag', 'Signal'] == 0.0
 
 
+def test_sdss_or_gsc():
+    """Test that only SDSS or GSC data is used to compute CR and Mag, and not a combination of the two"""
+
+    gs_id = 'N13I000018'
+    guider = 1
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+
+    # Test SDSS only - set tmass to missing (sdss will be chosen over gsc already)
+    fgs.gsc_series = GSC_SERIES
+    fgs.gsc_series['tmassJMag'] = -999
+    fgs.gsc_series['tmassHMag'] = -999
+    fgs.gsc_series['tmassKsMag'] = -999
+    fgs.calc_jhk_mag(fgs.gsc_series)
+    _ = fgs.calc_fgs_cr_mag_and_err()
+    # check gsc bands have been fully removed
+    assert False not in ['pgMag' not in i for i in fgs._present_calculated_mags]
+    # check that gsc bands are all excluded from calculations
+    gsc_index = [i for i in fgs.band_dataframe['ABMag'].index if 'pgMag' in i]
+    assert all(-999 == fgs.band_dataframe['ABMag'][gsc_index].values)
+
+    # Test GSC only - set tmass and SDSS g, z, and i to missing (keep r).
+    fgs.gsc_series = GSC_SERIES
+    fgs.gsc_series['tmassJMag'] = -999
+    fgs.gsc_series['tmassHMag'] = -999
+    fgs.gsc_series['tmassKsMag'] = -999
+    fgs.gsc_series['SDSSgMag'] = -999
+    fgs.gsc_series['SDSSzMag'] = -999
+    fgs.gsc_series['SDSSiMag'] = -999
+    fgs.calc_jhk_mag(fgs.gsc_series)
+    _ = fgs.calc_fgs_cr_mag_and_err()
+    # check sdss bands have been fully removed
+    assert False not in ['SDSS' not in i for i in fgs._present_calculated_mags]
+    # check that sdss bands are all excluded from calculations
+    sdss_index = [i for i in fgs.band_dataframe['ABMag'].index if 'SDSS' in i]
+    assert all(-999 == fgs.band_dataframe['ABMag'][sdss_index].values)
+
+
 def test_errors():
     """Test errors are raised properly """
 
