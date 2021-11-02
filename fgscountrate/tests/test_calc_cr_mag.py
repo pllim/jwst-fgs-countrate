@@ -7,6 +7,20 @@ import pytest
 import fgscountrate
 from fgscountrate.fgs_countrate_core import FGSCountrate
 
+values = ['N13I000018 ', 420900912, 273.206729760604, 65.5335149359777,
+          8.3030233068735e-05, 0.000185964552890292, 14.9447, 0.285722,
+          14.0877, 0.29279299999999997, 13.7468, 0.239294, 13.33899974823,
+          0.025000000372529, 12.9930000305176, 0.0270000007003546,
+          12.9010000228882, 0.0270000007003546, 15.78594, 0.005142466,
+          14.654670000000001, 0.003211281, 14.27808, 0.0032733809999999997,
+          14.14432, 0.003414216, 14.106670000000001, 0.00433389]
+index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
+         'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
+         'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
+         'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
+         'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
+GSC_SERIES = pd.Series(values, index=index)
+
 
 test_query_fgs_countrate_magnitude_parameters = ['GSC242', 'GSC241']
 @pytest.mark.parametrize('gsc', test_query_fgs_countrate_magnitude_parameters)
@@ -61,19 +75,7 @@ def test_compute_countrate_magnitude():
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
 
     # Reset data to a set of constant, fake data
-    values = ['N13I000018 ', 420900912, 273.206729760604, 65.5335149359777,
-              8.3030233068735e-05, 0.000185964552890292, 14.9447, 0.285722,
-              14.0877, 0.29279299999999997, 13.7468, 0.239294, 13.33899974823,
-              0.025000000372529, 12.9930000305176, 0.0270000007003546,
-              12.9010000228882, 0.0270000007003546, 15.78594, 0.005142466,
-              14.654670000000001, 0.003211281, 14.27808, 0.0032733809999999997,
-              14.14432, 0.003414216, 14.106670000000001, 0.00433389]
-    index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
-             'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
-             'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
-             'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
-             'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
-    fgs.gsc_series = pd.Series(values, index=index)
+    fgs.gsc_series = GSC_SERIES
 
     # Convert to JHK magnitudes
     fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
@@ -118,6 +120,55 @@ def test_convert_fgs_mag_to_cr():
     assert np.isclose(cr, expected_cr, 1)
 
 
+def test_faint_limits():
+    """Test that when SDSSgMag is below the faint limit, that conversion is skipped"""
+
+    gs_id = 'N13I000018'
+    guider = 1
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+
+    # Reset data to a set of constant, fake data with SDSS_g too dim and tmass missing
+    fgs.gsc_series = GSC_SERIES
+    fgs.gsc_series['tmassJMag'] = -999
+    fgs.gsc_series['tmassHMag'] = -999
+    fgs.gsc_series['tmassKsMag'] = -999
+    fgs.gsc_series['SDSSgMag'] = 25
+
+    # Convert to JHK magnitudes
+    fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
+        fgs.calc_jhk_mag(fgs.gsc_series)
+
+    # Check that the conversion methods are the SDSS ones that don't include SDSS_g
+    assert fgs.j_convert_method == 'convert_sdssiz_to_jhk'
+    assert fgs.h_convert_method == 'convert_sdssiz_to_jhk'
+    assert fgs.k_convert_method == 'convert_sdssiz_to_jhk'
+
+
+def test_bad_sdss_gz_limits():
+    """Test that when SDSSgMag and SDSSzMag color differences are bad, that conversion is skipped"""
+
+    gs_id = 'N13I000018'
+    guider = 1
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+
+    # Reset data to a set of constant, fake data with SDSS_g and z having bad color ranges and tmass missing
+    fgs.gsc_series = GSC_SERIES
+    fgs.gsc_series['tmassJMag'] = -999
+    fgs.gsc_series['tmassHMag'] = -999
+    fgs.gsc_series['tmassKsMag'] = -999
+    fgs.gsc_series['SDSSgMag'] = 20
+    fgs.gsc_series['SDSSzMag'] = 14
+
+    # Convert to JHK magnitudes
+    fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
+        fgs.calc_jhk_mag(fgs.gsc_series)
+
+    # Check that the conversion methods is the SDSS one after SDSS g-z
+    assert fgs.j_convert_method == 'convert_sdssgi_to_jhk'
+    assert fgs.h_convert_method == 'convert_sdssgi_to_jhk'
+    assert fgs.k_convert_method == 'convert_sdssgi_to_jhk'
+
+
 def test_band_missing():
     """Test that when a band (SDSS_g) is missing, it's signal is set to 0"""
 
@@ -126,17 +177,9 @@ def test_band_missing():
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
 
     # Reset data to a set of constant, fake data with SDSS_g missing
-    values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965,
-              14.9447, 0.285722, 14.0877, 0.2927929, 13.7468, 0.239294,
-              13.339, 0.0250000003, 12.993, 0.0270000007, 12.901, 0.0270000007,
-              15.78594, 0.005142, -999, -999, 14.27808, 0.003273380,
-              14.1443, 0.003414216, 14.1067, 0.00433389]
-    index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
-             'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
-             'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
-             'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
-             'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
-    fgs.gsc_series = pd.Series(values, index=index)
+    fgs.gsc_series = GSC_SERIES
+    fgs.gsc_series['SDSSgMag'] = -999
+    fgs.gsc_series['SDSSgMagErr'] = -999
 
     # Convert to JHK magnitudes
     fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
