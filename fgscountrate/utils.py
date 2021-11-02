@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import requests
 
+from .constants import ABMAG_CONSTANTS
+
 
 def convert_to_abmag(value, name):
     """
@@ -21,21 +23,7 @@ def convert_to_abmag(value, name):
 
     """
 
-    mag_constants = {
-        'tmassJMag': 0.90,
-        'tmassHMag': 1.37,
-        'tmassKsMag': 1.85,
-        'SDSSuMag': 0.0,
-        'SDSSgMag': 0.0,
-        'SDSSrMag': 0.0,
-        'SDSSiMag': 0.0,
-        'SDSSzMag': 0.0,
-        'JpgMag': -0.055,
-        'FpgMag': 0.24,
-        'NpgMag': 0.48,
-    }
-
-    abmag = value + mag_constants[name]
+    abmag = value + ABMAG_CONSTANTS[name]
 
     return abmag
 
