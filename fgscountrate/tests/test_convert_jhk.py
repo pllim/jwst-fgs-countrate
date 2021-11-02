@@ -63,6 +63,8 @@ def test_convert_mag_to_jhk():
 
                 elif {'SDSSgMag', 'SDSSzMag'}.issubset(subset):
                     method_name_test = "convert_sdssgz_to_jhk"
+                elif {'SDSSrMag', 'SDSSzMag'}.issubset(subset):
+                    method_name_test = "convert_sdssrz_to_jhk"
                 elif {'SDSSgMag', 'SDSSiMag'}.issubset(subset):
                     method_name_test = "convert_sdssgi_to_jhk"
                 elif {'SDSSiMag', 'SDSSzMag'}.issubset(subset):
@@ -88,16 +90,16 @@ def test_convert_mag_to_jhk():
 
 
 testdata = [
-    (15, 15, 15, 25, 25, 25, 'convert_tmass_to_jhk', 'convert_tmass_to_jhk', 'convert_tmass_to_jhk'),
-    (-999, -999, -999, 25, 15, 15, 'convert_sdssiz_to_jhk', 'convert_sdssiz_to_jhk', 'convert_sdssiz_to_jhk'),
+    (15, 15, 15, 25, 25, 25, 25, 'convert_tmass_to_jhk', 'convert_tmass_to_jhk', 'convert_tmass_to_jhk'),
+    (-999, -999, -999, 25, 15, 25, 15, 'convert_sdssiz_to_jhk', 'convert_sdssiz_to_jhk', 'convert_sdssiz_to_jhk'),
 ]
 ids = ['tmass conversion with faint sdss', 'sdss-zi conversion because of faint g-band']
-@pytest.mark.parametrize("jmag, hmag, kmag, gmag, zmag, imag, convert_j, convert_h, convert_k", testdata, ids=ids)
-def test_check_band_below_faint_limits_pass(jmag, hmag, kmag, gmag, zmag, imag, convert_j, convert_h, convert_k):
+@pytest.mark.parametrize("jmag, hmag, kmag, gmag, zmag, rmag, imag, convert_j, convert_h, convert_k", testdata, ids=ids)
+def test_check_band_below_faint_limits_pass(jmag, hmag, kmag, gmag, zmag, rmag, imag, convert_j, convert_h, convert_k):
     """
     Test that the checking of faint bands will in certain cases have the code
     choose a conversion method that is not the "best" case conversion because
-    of the existense of faint stars.
+    of the existence of faint stars.
     """
     # Edit base data for specific test
     data = copy.copy(BASE_DATA)
@@ -105,6 +107,7 @@ def test_check_band_below_faint_limits_pass(jmag, hmag, kmag, gmag, zmag, imag, 
     data['tmassHMag'] = hmag
     data['tmassKsMag'] = kmag
     data['SDSSgMag'] = gmag
+    data['SDSSrMag'] = rmag
     data['SDSSzMag'] = zmag
     data['SDSSiMag'] = imag
     data['JpgMag'] = -999
@@ -132,6 +135,7 @@ def test_check_band_below_faint_limits_failure():
     data['tmassHMag'] = -999
     data['tmassKsMag'] = -999
     data['SDSSgMag'] = 25
+    data['SDSSrMag'] = -999
     data['SDSSzMag'] = 25
     data['SDSSiMag'] = 15
     data['JpgMag'] = -999

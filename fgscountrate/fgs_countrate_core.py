@@ -171,6 +171,7 @@ class FGSCountrate:
             switcher = OrderedDict([
                 (i, 'convert_tmass_to_jhk'),
                 ('SDSSgMag, SDSSzMag',  'convert_sdssgz_to_jhk'),
+                ('SDSSrMag, SDSSzMag', 'convert_sdssrz_to_jhk'),
                 ('SDSSgMag, SDSSiMag',  'convert_sdssgi_to_jhk'),
                 ('SDSSiMag, SDSSzMag',  'convert_sdssiz_to_jhk'),
                 ('JpgMag, NpgMag',      'convert_gsc2bjin_to_jhk'),
