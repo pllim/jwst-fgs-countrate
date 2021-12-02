@@ -107,7 +107,12 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     url = url + f'FORMAT={file_format}&CAT={catalog}'
 
     # Query data
-    request = requests.get(url).content
+    try:
+        request = requests.get(url).content
+    except requests.ConnectionError as e:
+        raise ConnectionError(f'Cannot connect to Guide Star Catalog. Catalog or internet may be down. '
+                              f'See full error below.\n {e}')
+
 
     # Read data into pandas
     try:
