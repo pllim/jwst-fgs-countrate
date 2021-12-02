@@ -138,24 +138,27 @@ def check_band_below_faint_limits(bands, mags):
 
     Returns
     -------
-    bool : True if the band if below the faint limit. False if it is not
+    list : a new list of bands that are above the faint limit (ie - use-able bands)
     """
     if isinstance(bands, str):
         bands = [bands]
     if isinstance(mags, float):
         mags = [mags]
 
+    new_bands = []
     for band, mag in zip(bands, mags):
         if 'SDSSgMag' in band and mag >= 24:
-            return True
+            continue
         elif 'SDSSrMag' in band and mag >= 24:
-            return True
+            continue
         elif 'SDSSiMag' in band and mag >= 23:
-            return True
+            continue
         elif 'SDSSzMag' in band and mag >= 22:
-            return True
+            continue
+        else:
+            new_bands.append(band)
 
-    return False
+    return new_bands
 
 
 def check_sdss_gz_limits(mags):

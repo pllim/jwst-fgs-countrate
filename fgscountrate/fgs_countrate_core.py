@@ -164,6 +164,10 @@ class FGSCountrate:
         # List of the magnitude names that are not fill values in the series
         self._present_queried_mags = list(self._all_queried_mag_series[self._all_queried_mag_series != -999].index)
 
+        # Remove all dim bands
+        self._present_queried_mags = utils.check_band_below_faint_limits(self._present_queried_mags,
+                                     self._all_queried_mag_series[self._present_queried_mags].tolist())
+
         # Dictionary of convert methods
         tmass_list = ['tmassJMag', 'tmassHMag', 'tmassKsMag']
         method_list = []
@@ -186,9 +190,7 @@ class FGSCountrate:
                 if set(key_list).issubset(self._present_queried_mags):
 
                     mags = self._all_queried_mag_series[key_list].values
-                    # Check for faint star limits
-                    if utils.check_band_below_faint_limits(key_list, mags):
-                        continue
+
                     # Check if SDSS-GZ has okay limits
                     if key == 'SDSSgMag, SDSSzMag':
                         if utils.check_sdss_gz_limits(mags):
