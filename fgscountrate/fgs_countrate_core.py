@@ -50,6 +50,7 @@ class FGSCountrate:
         self.id = guide_star_id
         self.guider = guider
         self.gsc_series = None
+        self.survey = None
 
         if self.guider not in [1, 2]:
             raise ValueError("Guider value must be an integer either 1 or 2")
@@ -228,6 +229,12 @@ class FGSCountrate:
         self._present_calculated_mags = self._present_queried_mags + [a for a in good_tmass
                                                                       if a not in self._present_queried_mags]
 
+        # Set survey to use if available from conversion information
+        if ('sdss' in self.j_convert_method) or ('sdss' in self.h_convert_method) or ('sdss' in self.k_convert_method):
+            self.survey = 'sdss'
+        elif ('gsc2' in self.j_convert_method) or ('gsc2' in self.h_convert_method) or ('gsc2' in self.k_convert_method):
+            self.survey = 'gsc2'
+
         return self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err
 
     def _calc_fgs_cr_mag(self, to_compute, band_series, guider_throughput, guider_gain, return_dataframe=False):
@@ -378,14 +385,23 @@ class FGSCountrate:
         throughput_dict = globals()[f'THROUGHPUT_G{self.guider}']
         cr_conversion = globals()[f'CR_CONVERSION_G{self.guider}']
 
+        # Define survey to use if not already defined (previous definition is the better way to do it)
+        if self.survey is None:
+            if True in ['sdss' in substring.lower() for substring in self._present_calculated_mags]:
+                self.survey = 'sdss'
+            elif True in ['pgmag' in substring.lower() for substring in self._present_calculated_mags]:
+                self.survey = 'gsc2'
+            else:
+                self.survey = 'tmass'
+
         # Update attributes with updated series - choose either SDSS or GSC - don't include both, to match GSSS
-        if True in ['sdss' in substring.lower() for substring in self._present_calculated_mags]:
+        if self.survey == 'sdss':
             all_list = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'sdss' in band.lower()]
             present_list = [band for band in self._present_calculated_mags if 'tmass' in band.lower() or 'sdss' in band.lower()]
-        elif True in ['gsc' in substring.lower() for substring in self._present_calculated_mags]:
-            all_list = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'gsc' in band.lower()]
-            present_list = [band for band in self._present_calculated_mags if 'tmass' in band.lower() or 'gsc' in band.lower()]
-        else:
+        elif self.survey == 'gsc2':
+            all_list = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'pgmag' in band.lower()]
+            present_list = [band for band in self._present_calculated_mags if 'tmass' in band.lower() or 'pgmag' in band.lower()]
+        elif self.survey == 'tmass':
             all_list = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower()]
             present_list = [band for band in self._present_calculated_mags if 'tmass' in band.lower()]
         self._all_calculated_mag_series = self._all_calculated_mag_series.loc[all_list]
