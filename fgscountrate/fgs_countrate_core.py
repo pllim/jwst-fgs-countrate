@@ -289,6 +289,11 @@ class FGSCountrate:
         # Sort to order of increasing wavelength
         df = df.sort_values(by=['Wavelength'])
 
+        # Check that you don't have any negative magnitude values
+        if True in [i < 0 for i in df[df['Mag'] != -999]['Mag'].values]:
+            raise ValueError('This star has negative magnitude values and cannot be used to '
+                             'calculate a meaningful count rate and magnitude.')
+
         # Calculate and add ABMagnitudes
         def ab_mag(row):
             if row.name in self._present_calculated_mags:
