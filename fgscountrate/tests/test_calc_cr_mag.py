@@ -389,6 +389,7 @@ def test_errors():
     fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgscountrate.fgs_countrate_core.GSC_BAND_NAMES]
     fgs._all_calculated_mag_err_series = fgs.gsc_series.loc[[band+'Err' for band
                                                              in fgscountrate.fgs_countrate_core.GSC_BAND_NAMES]]
+    fgs.survey = 'tmass'
 
     with pytest.raises(ValueError) as excinfo:
         fgs.calc_fgs_cr_mag_and_err()
@@ -416,6 +417,7 @@ def test_output_options():
     fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgscountrate.GSC_BAND_NAMES]
     mag_err_list = [fgs.gsc_series[ind + 'Err'] for ind in fgs._all_calculated_mag_series.index]
     fgs._all_calculated_mag_err_series = pd.Series(mag_err_list, index=fgs._all_calculated_mag_series.index+'Err')
+    fgs.survey = 'sdss'
 
     # Test output from calc_fgs_cr_mag_and_err()
     return_list = fgs.calc_fgs_cr_mag_and_err()

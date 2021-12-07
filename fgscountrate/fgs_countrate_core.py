@@ -234,6 +234,14 @@ class FGSCountrate:
             self.survey = 'sdss'
         elif ('gsc2' in self.j_convert_method) or ('gsc2' in self.h_convert_method) or ('gsc2' in self.k_convert_method):
             self.survey = 'gsc2'
+        else: # if jhk were all from tmass
+            if True in ['sdss' in substring.lower() for substring in self._present_calculated_mags]:
+                self.survey = 'sdss'
+            elif True in ['pgmag' in substring.lower() for substring in self._present_calculated_mags]:
+                # GSC2 bands are named with pgmag
+                self.survey = 'gsc2'
+            else:
+                self.survey = 'tmass'
 
         return self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err
 
@@ -389,15 +397,6 @@ class FGSCountrate:
         # Set values based on guider
         throughput_dict = globals()[f'THROUGHPUT_G{self.guider}']
         cr_conversion = globals()[f'CR_CONVERSION_G{self.guider}']
-
-        # Define survey to use if not already defined (previous definition is the better way to do it)
-        if self.survey is None:
-            if True in ['sdss' in substring.lower() for substring in self._present_calculated_mags]:
-                self.survey = 'sdss'
-            elif True in ['pgmag' in substring.lower() for substring in self._present_calculated_mags]:
-                self.survey = 'gsc2'
-            else:
-                self.survey = 'tmass'
 
         # Update attributes with updated series - choose either SDSS or GSC - don't include both, to match GSSS
         if self.survey == 'sdss':
