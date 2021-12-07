@@ -183,7 +183,7 @@ def check_sdss_gz_limits(mags):
     g = mags[0]
     z = mags[1]
 
-    if g-z > 5 or g-z < -1:
+    if g-z > 5 or g-z < 0:
         return True
     else:
         return False
