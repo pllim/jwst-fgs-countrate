@@ -230,18 +230,14 @@ class FGSCountrate:
                                                                       if a not in self._present_queried_mags]
 
         # Set survey to use if available from conversion information
-        if ('sdss' in self.j_convert_method) or ('sdss' in self.h_convert_method) or ('sdss' in self.k_convert_method):
+        # If one of the SDSS pairs is present
+        if set(['SDSSgMag', 'SDSSzMag']).issubset(set(self._present_calculated_mags)) or \
+           set(['SDSSrMag', 'SDSSzMag']).issubset(set(self._present_calculated_mags)) or \
+           set(['SDSSgMag', 'SDSSiMag']).issubset(set(self._present_calculated_mags)):
             self.survey = 'sdss'
-        elif ('gsc2' in self.j_convert_method) or ('gsc2' in self.h_convert_method) or ('gsc2' in self.k_convert_method):
+        # If you don't have any SDSS pairs but you do have GSC2 data
+        else:
             self.survey = 'gsc2'
-        else: # if jhk were all from tmass
-            if True in ['sdss' in substring.lower() for substring in self._present_calculated_mags]:
-                self.survey = 'sdss'
-            elif True in ['pgmag' in substring.lower() for substring in self._present_calculated_mags]:
-                # GSC2 bands are named with pgmag
-                self.survey = 'gsc2'
-            else:
-                self.survey = 'tmass'
 
         return self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err
 
@@ -405,9 +401,6 @@ class FGSCountrate:
         elif self.survey == 'gsc2':
             all_list = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'pgmag' in band.lower()]
             present_list = [band for band in self._present_calculated_mags if 'tmass' in band.lower() or 'pgmag' in band.lower()]
-        elif self.survey == 'tmass':
-            all_list = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower()]
-            present_list = [band for band in self._present_calculated_mags if 'tmass' in band.lower()]
         self._all_calculated_mag_series = self._all_calculated_mag_series.loc[all_list]
         self._all_calculated_mag_err_series = self._all_calculated_mag_err_series.loc[[name+'Err' for name in all_list]]
         self._present_calculated_mags = present_list
