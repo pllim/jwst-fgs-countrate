@@ -178,7 +178,7 @@ class FGSCountrate:
                 ('SDSSgMag, SDSSzMag',  'convert_sdssgz_to_jhk'),
                 ('SDSSrMag, SDSSzMag', 'convert_sdssrz_to_jhk'),
                 ('SDSSgMag, SDSSiMag',  'convert_sdssgi_to_jhk'),
-                ('SDSSiMag, SDSSzMag',  'convert_sdssiz_to_jhk'),
+                #('SDSSiMag, SDSSzMag',  'convert_sdssiz_to_jhk'), # Add back in once GSSS uses this pair
                 ('JpgMag, NpgMag',      'convert_gsc2bjin_to_jhk'),
                 ('FpgMag, NpgMag',      'convert_gsc2rfin_to_jhk'),
                 ('JpgMag, FpgMag',      'convert_gsc2bjrf_to_jhk'),

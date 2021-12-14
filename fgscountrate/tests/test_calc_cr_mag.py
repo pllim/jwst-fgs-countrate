@@ -167,9 +167,9 @@ def test_dim_limits_partialsdss():
     fgs.gsc_series = copy.copy(GSC_SERIES)
     for ind in TMASS_BANDS:
         fgs.gsc_series.loc[ind] = -999
-    fgs.gsc_series['SDSSgMag'] = 24  # dim
+    fgs.gsc_series['SDSSgMag'] = 17
     fgs.gsc_series['SDSSrMag'] = 24  # dim
-    fgs.gsc_series['SDSSzMag'] = 17
+    fgs.gsc_series['SDSSzMag'] = 24  # dim
     fgs.gsc_series['SDSSiMag'] = 17
 
     # Convert to JHK magnitudes
@@ -177,9 +177,9 @@ def test_dim_limits_partialsdss():
         fgs.calc_jhk_mag(fgs.gsc_series)
 
     # Check conversion method
-    assert fgs.j_convert_method == 'convert_sdssiz_to_jhk'
-    assert fgs.h_convert_method == 'convert_sdssiz_to_jhk'
-    assert fgs.k_convert_method == 'convert_sdssiz_to_jhk'
+    assert fgs.j_convert_method == 'convert_sdssgi_to_jhk'
+    assert fgs.h_convert_method == 'convert_sdssgi_to_jhk'
+    assert fgs.k_convert_method == 'convert_sdssgi_to_jhk'
 
     # Compute FGS countrate and magnitude to get fgs.band_dataframe attribute
     _ = fgs.calc_fgs_cr_mag_and_err()
@@ -187,9 +187,9 @@ def test_dim_limits_partialsdss():
     # Check Mag, ABMag, Flux, and Signal = -999 for g and r
     assert fgs.survey == 'sdss'
 
-    assert fgs.band_dataframe.at['SDSSgMag', 'ABMag'] == -999
-    assert fgs.band_dataframe.at['SDSSgMag', 'Flux'] == -999
-    assert fgs.band_dataframe.at['SDSSgMag', 'Signal'] == -999
+    assert fgs.band_dataframe.at['SDSSzMag', 'ABMag'] == -999
+    assert fgs.band_dataframe.at['SDSSzMag', 'Flux'] == -999
+    assert fgs.band_dataframe.at['SDSSzMag', 'Signal'] == -999
 
     assert fgs.band_dataframe.at['SDSSrMag', 'ABMag'] == -999
     assert fgs.band_dataframe.at['SDSSrMag', 'Flux'] == -999

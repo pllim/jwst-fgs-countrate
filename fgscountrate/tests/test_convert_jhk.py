@@ -67,8 +67,8 @@ def test_convert_mag_to_jhk():
                     method_name_test = "convert_sdssrz_to_jhk"
                 elif {'SDSSgMag', 'SDSSiMag'}.issubset(subset):
                     method_name_test = "convert_sdssgi_to_jhk"
-                elif {'SDSSiMag', 'SDSSzMag'}.issubset(subset):
-                    method_name_test = "convert_sdssiz_to_jhk"
+                # elif {'SDSSiMag', 'SDSSzMag'}.issubset(subset):  # Add back in once GSSS uses this pair
+                #     method_name_test = "convert_sdssiz_to_jhk"
 
                 elif {'JpgMag', 'NpgMag'}.issubset(subset):
                     method_name_test = "convert_gsc2bjin_to_jhk"
@@ -91,9 +91,9 @@ def test_convert_mag_to_jhk():
 
 testdata = [
     (15, 15, 15, 25, 25, 25, 25, 'convert_tmass_to_jhk', 'convert_tmass_to_jhk', 'convert_tmass_to_jhk'),
-    (-999, -999, -999, 25, 15, 25, 15, 'convert_sdssiz_to_jhk', 'convert_sdssiz_to_jhk', 'convert_sdssiz_to_jhk'),
+    (-999, -999, -999, 15, 25, 25, 15, 'convert_sdssgi_to_jhk', 'convert_sdssgi_to_jhk', 'convert_sdssgi_to_jhk'),
 ]
-ids = ['tmass conversion with faint sdss', 'sdss-zi conversion because of faint g-band']
+ids = ['tmass conversion with faint sdss', 'sdss-gi conversion because of faint r an z bands']
 @pytest.mark.parametrize("jmag, hmag, kmag, gmag, zmag, rmag, imag, convert_j, convert_h, convert_k", testdata, ids=ids)
 def test_check_band_below_faint_limits_pass(jmag, hmag, kmag, gmag, zmag, rmag, imag, convert_j, convert_h, convert_k):
     """
