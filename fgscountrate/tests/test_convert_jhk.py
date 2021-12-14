@@ -155,6 +155,7 @@ def test_check_band_below_faint_limits_failure():
     assert 'Cannot compute FGS countrate & magnitude for a guide star' in str(e_info.value)
 
 
+@pytest.mark.skip(reason="Removed test until this functionality is added back into the GSSS and this code")
 def test_bad_sdss_gz_limits():
     """Test that when SDSSgMag and SDSSzMag color differences are bad, that conversion is skipped"""
 

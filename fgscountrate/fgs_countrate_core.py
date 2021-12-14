@@ -192,10 +192,10 @@ class FGSCountrate:
 
                     mags = self._all_queried_mag_series[key_list].values
 
-                    # Check if SDSS-GZ has okay limits
-                    if key == 'SDSSgMag, SDSSzMag':
-                        if utils.check_sdss_gz_limits(mags):
-                            continue
+                    # Check color differences - commented out until it's added to GSSS
+                    # if key == 'SDSSgMag, SDSSzMag':
+                    #     if utils.check_sdss_gz_limits(mags):
+                    #         continue
 
                     # Set the conversion method
                     setattr(self, f'{i[5].lower()}_convert_method', value)
