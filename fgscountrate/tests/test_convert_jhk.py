@@ -266,12 +266,12 @@ def test_sdssgz_to_jhk():
     # Check conversion function matches hand-check here
     assert np.isclose(j_ser, 11.191999999999998, 1e-5)
     assert np.isclose(h_ser, 11.041, 1e-5)
-    assert np.isclose(k_ser, 10.749, 1e-5)
+    assert np.isclose(k_ser, 10.74, 1e-5)
 
     # Check uncertainties
     assert np.isclose(j_err_ser, 0.27265120293170503, 1e-5)
     assert np.isclose(h_err_ser, 0.24635741034709235, 1e-5)
-    assert np.isclose(k_err_ser, 0.2439674603454265, 1e-5)
+    assert np.isclose(k_err_ser, 0.24035821994429607, 1e-5)
 
 
 def test_sdssgi_to_jhk():
