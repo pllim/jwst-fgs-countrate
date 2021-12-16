@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import requests
 
+from .constants import ABMAG_CONSTANTS
+
 
 def convert_to_abmag(value, name):
     """
@@ -21,21 +23,7 @@ def convert_to_abmag(value, name):
 
     """
 
-    mag_constants = {
-        'tmassJMag': 0.90,
-        'tmassHMag': 1.37,
-        'tmassKsMag': 1.85,
-        'SDSSuMag': 0.0,
-        'SDSSgMag': 0.0,
-        'SDSSrMag': 0.0,
-        'SDSSiMag': 0.0,
-        'SDSSzMag': 0.0,
-        'JpgMag': -0.055,
-        'FpgMag': 0.24,
-        'NpgMag': 0.48,
-    }
-
-    abmag = value + mag_constants[name]
+    abmag = value + ABMAG_CONSTANTS[name]
 
     return abmag
 
@@ -101,32 +89,37 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     # Set URL
     url = 'http://gsss.stsci.edu/webservices/vo/CatalogSearch.aspx?'
     if gs_id is not None:
-        url = url + 'GSC2ID={}&'.format(gs_id)
+        url = url + f'GSC2ID={gs_id}&'
     if ra is not None:
-        url = url + 'RA={}&'.format(ra)
+        url = url + f'RA={ra}&'
     if dec is not None:
-        url = url + 'DEC={}&'.format(dec)
+        url = url + f'DEC={dec}&'
     if cone_radius is not None:
-        url = url + 'SR={}&'.format(cone_radius)
+        url = url + f'SR={cone_radius}&'
     if minra is not None:
-        url = url + 'BBOX={}%2c'.format(minra)
+        url = url + f'BBOX={minra}%2c'
     if mindec is not None:
-        url = url + '{}%2c'.format(mindec)
+        url = url + f'{mindec}%2c'
     if maxra is not None:
-        url = url + '{}%2c'.format(maxra)
+        url = url + f'{maxra}%2c'
     if maxdec is not None:
-        url = url + '{}&'.format(maxdec)
-    url = url + 'FORMAT={}&CAT={}'.format(file_format, catalog)
+        url = url + f'{maxdec}&'
+    url = url + f'FORMAT={file_format}&CAT={catalog}'
 
     # Query data
-    request = requests.get(url).content
+    try:
+        request = requests.get(url).content
+    except requests.ConnectionError as e:
+        raise ConnectionError(f'Cannot connect to Guide Star Catalog. Catalog or internet may be down. '
+                              f'See full error below.\n {e}')
+
 
     # Read data into pandas
     try:
         data_frame = pd.read_csv(io.StringIO(request.decode('utf-8')), skiprows=1, na_values=[' '])
         data_frame.replace(np.nan, -999, regex=True, inplace=True)
     except pd.errors.EmptyDataError:
-        raise NameError("No guide stars match these requirements in catalog {}".format(catalog))
+        raise NameError(f"No guide stars match these requirements in catalog {catalog}")
 
     # Update header to new capitalization if using an old GSC version
     if catalog in ['GSC2412', 'GSC241']:
@@ -150,24 +143,50 @@ def check_band_below_faint_limits(bands, mags):
 
     Returns
     -------
-    bool : True if the band if below the faint limit. False if it is not
+    list : a new list of bands that are above the faint limit (ie - use-able bands)
     """
     if isinstance(bands, str):
         bands = [bands]
     if isinstance(mags, float):
         mags = [mags]
 
+    new_bands = []
     for band, mag in zip(bands, mags):
         if 'SDSSgMag' in band and mag >= 24:
-            return True
+            continue
         elif 'SDSSrMag' in band and mag >= 24:
-            return True
+            continue
         elif 'SDSSiMag' in band and mag >= 23:
-            return True
+            continue
         elif 'SDSSzMag' in band and mag >= 22:
-            return True
+            continue
+        else:
+            new_bands.append(band)
 
-    return False
+    return new_bands
+
+
+def check_sdss_gz_limits(mags):
+    """
+    Check if we can use the SDSSS G-Z conversion at the blue and
+    red end of the spectrum.
+
+    Parameters
+    ----------
+    mags : list
+        Magnitudes of the SDSS G and Z bands, in order
+
+    Returns
+    -------
+    bool : True if SDSS-GZ cannot be used. False if it can
+    """
+    g = mags[0]
+    z = mags[1]
+
+    if g-z > 5 or g-z < 0:
+        return True
+    else:
+        return False
 
 
 def trapezoid_sum(df, col, col2='Wavelength'):

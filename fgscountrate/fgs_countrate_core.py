@@ -20,64 +20,7 @@ import pandas as pd
 
 from . import conversions
 from . import utils
-
-# Universal Constant
-PLANCK = 6.625e-27
-
-# GSC Band Information
-GSC_BAND_NAMES = ['tmassJMag', 'tmassHMag', 'tmassKsMag',
-                  'SDSSuMag', 'SDSSgMag', 'SDSSrMag', 'SDSSiMag',
-                  'SDSSzMag', 'JpgMag', 'FpgMag', 'NpgMag']
-GSC_BAND_WAVELENGTH = [1.25, 1.65, 2.17,
-                       0.3551, 0.4680, 0.6166, 0.7480,
-                       0.8932, 0.4660, 0.6450, 0.8500]
-
-# Factor to use when calculating a band's missing uncertainty
-BAND_ERR = 0.025
-
-# FGS-Guider + OTE throughput
-THROUGHPUT_G1 = {
-    0.3551: 0.0,
-    0.4660: 0.042,
-    0.4680: 0.044,
-    0.6166: 0.389,
-    0.6450: 0.487,
-    0.7480: 0.586,
-    0.8500: 0.655,
-    0.8932: 0.707,
-    1.25: 0.688,
-    1.65: 0.633,
-    2.17: 0.723,
-    3.0: 0.744,
-    4.0: 0.690,
-    5.0: 0.548,
-    5.5: 0.041,
-}
-THROUGHPUT_G2 = {
-    0.3551: 0.0,
-    0.4660: 0.020,
-    0.4680: 0.021,
-    0.6166: 0.289,
-    0.6450: 0.390,
-    0.7480: 0.628,
-    0.8500: 0.669,
-    0.8932: 0.647,
-    1.25: 0.761,
-    1.65: 0.603,
-    2.17: 0.635,
-    3.0: 0.735,
-    4.0: 0.738,
-    5.0: 0.687,
-    5.5: 0.040,
-}
-
-# Countrate conversion factors
-CR_CONVERSION_G1 = 1.74
-CR_CONVERSION_G2 = 1.57
-
-# Magnitude conversion constant
-MAG_CONVERSION_G1 = 28.29
-MAG_CONVERSION_G2 = 28.20
+from .constants import *
 
 
 class FGSCountrate:
@@ -107,6 +50,7 @@ class FGSCountrate:
         self.id = guide_star_id
         self.guider = guider
         self.gsc_series = None
+        self.survey = None
 
         if self.guider not in [1, 2]:
             raise ValueError("Guider value must be an integer either 1 or 2")
@@ -174,7 +118,7 @@ class FGSCountrate:
         if len(data_frame) == 1:
             self.gsc_series = data_frame.iloc[0]
         else:
-            raise ValueError("This Guide Star ID points to multiple lines in {}".format(catalog))
+            raise ValueError(f"This Guide Star ID points to multiple lines in {catalog}")
 
         # Convert to JHK magnitudes
         self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err = \
@@ -221,14 +165,20 @@ class FGSCountrate:
         # List of the magnitude names that are not fill values in the series
         self._present_queried_mags = list(self._all_queried_mag_series[self._all_queried_mag_series != -999].index)
 
+        # Remove all dim bands
+        self._present_queried_mags = utils.check_band_below_faint_limits(self._present_queried_mags,
+                                     self._all_queried_mag_series[self._present_queried_mags].tolist())
+
         # Dictionary of convert methods
+        tmass_list = ['tmassJMag', 'tmassHMag', 'tmassKsMag']
         method_list = []
-        for i in ['tmassJMag', 'tmassHMag', 'tmassKsMag']:
+        for i in tmass_list:
             switcher = OrderedDict([
                 (i, 'convert_tmass_to_jhk'),
                 ('SDSSgMag, SDSSzMag',  'convert_sdssgz_to_jhk'),
+                ('SDSSrMag, SDSSzMag', 'convert_sdssrz_to_jhk'),
                 ('SDSSgMag, SDSSiMag',  'convert_sdssgi_to_jhk'),
-                ('SDSSiMag, SDSSzMag',  'convert_sdssiz_to_jhk'),
+                #('SDSSiMag, SDSSzMag',  'convert_sdssiz_to_jhk'), # Add back in once GSSS uses this pair
                 ('JpgMag, NpgMag',      'convert_gsc2bjin_to_jhk'),
                 ('FpgMag, NpgMag',      'convert_gsc2rfin_to_jhk'),
                 ('JpgMag, FpgMag',      'convert_gsc2bjrf_to_jhk'),
@@ -240,20 +190,23 @@ class FGSCountrate:
 
                 if set(key_list).issubset(self._present_queried_mags):
 
-                    # Check for faint star limits
                     mags = self._all_queried_mag_series[key_list].values
-                    if utils.check_band_below_faint_limits(key_list, mags):
-                        continue
+
+                    # Check color differences - commented out until it's added to GSSS
+                    # if key == 'SDSSgMag, SDSSzMag':
+                    #     if utils.check_sdss_gz_limits(mags):
+                    #         continue
 
                     # Set the conversion method
-                    setattr(self, '{}_convert_method'.format(i[5].lower()), value)
+                    setattr(self, f'{i[5].lower()}_convert_method', value)
                     break
 
-            if getattr(self, '{}_convert_method'.format(i[5].lower())) is None:
-                raise ValueError('There is not enough information on this guide star to get its {} magnitude'.format(i))
+            # Return -999 if the band cannot be calculated
+            if getattr(self, f'{i[5].lower()}_convert_method') is None:
+                setattr(self, f'{i[5].lower()}_convert_method', 'cannot_calculate')
 
             # Get the method
-            method = getattr(conversions, getattr(self, '{}_convert_method'.format(i[5].lower())), lambda: "Invalid")
+            method = getattr(conversions, getattr(self, f'{i[5].lower()}_convert_method'), lambda: "Invalid")
             method_list.append(method)
 
         # Create a new series with the edited data (in case uncertainties were replaced)
@@ -264,18 +217,27 @@ class FGSCountrate:
         self.h_mag, self.h_mag_err = method_list[1](data=edited_data_series, output_mag='H')
         self.k_mag, self.k_mag_err = method_list[2](data=edited_data_series, output_mag='K')
 
-        # Create new attribute with updated series
+        # Update any calculated J, H, and K values
         self._all_calculated_mag_series = copy.deepcopy(self._all_queried_mag_series)
-        self._all_calculated_mag_series.loc[['tmassJMag', 'tmassHMag', 'tmassKsMag']] = \
-            self.j_mag, self.h_mag, self.k_mag
+        self._all_calculated_mag_series.loc[tmass_list] = self.j_mag, self.h_mag, self.k_mag
 
         self._all_calculated_mag_err_series = copy.deepcopy(self._all_queried_mag_err_series)
-        self._all_calculated_mag_err_series.loc[['tmassJMagErr', 'tmassHMagErr', 'tmassKsMagErr']] = \
+        self._all_calculated_mag_err_series.loc[[name+'Err' for name in tmass_list]] = \
             self.j_mag_err, self.h_mag_err, self.k_mag_err
 
-        self._present_calculated_mags = self._present_queried_mags + [a for a in
-                                                                      ['tmassJMag', 'tmassHMag', 'tmassKsMag']
+        good_tmass = [name for name, mag in zip(tmass_list, [self.j_mag, self.h_mag, self.k_mag]) if mag != -999]
+        self._present_calculated_mags = self._present_queried_mags + [a for a in good_tmass
                                                                       if a not in self._present_queried_mags]
+
+        # Set survey to use if available from conversion information
+        # If one of the SDSS pairs is present
+        if set(['SDSSgMag', 'SDSSzMag']).issubset(set(self._present_calculated_mags)) or \
+           set(['SDSSrMag', 'SDSSzMag']).issubset(set(self._present_calculated_mags)) or \
+           set(['SDSSgMag', 'SDSSiMag']).issubset(set(self._present_calculated_mags)):
+            self.survey = 'sdss'
+        # If you don't have any SDSS pairs but you do have GSC2 data
+        else:
+            self.survey = 'gsc2'
 
         return self.j_mag, self.j_mag_err, self.h_mag, self.h_mag_err, self.k_mag, self.k_mag_err
 
@@ -322,6 +284,7 @@ class FGSCountrate:
 
         # Create initial dataframe
         df = pd.DataFrame(GSC_BAND_WAVELENGTH, columns=['Wavelength'], index=GSC_BAND_NAMES)
+        df = df.loc[band_series.index]
 
         # Add magnitudes
         df = pd.concat([df, band_series], axis=1, sort=True)
@@ -329,6 +292,11 @@ class FGSCountrate:
         
         # Sort to order of increasing wavelength
         df = df.sort_values(by=['Wavelength'])
+
+        # Check that you don't have any negative magnitude values
+        if True in [i < 0 for i in df[df['Mag'] != -999]['Mag'].values]:
+            raise ValueError('This star has negative magnitude values and cannot be used to '
+                             'calculate a meaningful count rate and magnitude.')
 
         # Calculate and add ABMagnitudes
         def ab_mag(row):
@@ -370,16 +338,13 @@ class FGSCountrate:
 
         df['Signal'] = df.apply(lambda row: calc_signal(row), axis=1)
 
-        # Can't compute if we only have J, H, and K  # TODO will be changed later
-        if {'tmassJMag', 'tmassHMag', 'tmassKsMag'} == set(self._present_calculated_mags):
-            raise ValueError('Cannot compute FGS countrate & magnitude for a guide star ({}) with only 2MASS '
-                             'data'.format(self.id))
-
-        # Reset the shortest/2nd shortest bands to 0 if they are missing
-        if df.at['JpgMag', 'Signal'] == -999:
-            df.at['JpgMag', 'Signal'] = 0
-        if df.at['SDSSgMag', 'Signal'] == -999:
-            df.at['SDSSgMag', 'Signal'] = 0
+        # Commenting out to match GSSS code - may add back in later
+        # Also SDSSu is lower than SDSSg, so why did we do this with g?
+        # # Reset the shortest/2nd shortest bands to 0 if they are missing
+        # if 'JpgMag' in df.index and df.at['JpgMag', 'Signal'] == -999:
+        #     df.at['JpgMag', 'Signal'] = 0
+        # if 'SDSSgMag' in df.index and df.at['SDSSgMag', 'Signal'] == -999:
+        #     df.at['SDSSgMag', 'Signal'] = 0
 
         # Throw out any bands for which you don't have data
         df_short = df[df['Signal'] != -999]
@@ -395,7 +360,7 @@ class FGSCountrate:
 
         # Compute FGS magnitude
         sum_throughput = utils.trapezoid_sum(df_short, 'Throughput')
-        mag_conversion = globals()['MAG_CONVERSION_G{}'.format(self.guider)]
+        mag_conversion = globals()[f'MAG_CONVERSION_G{self.guider}']
         fgs_magnitude = -2.5 * np.log10(electrons / sum_throughput) + mag_conversion
 
         if to_compute.lower() == 'magnitude' or to_compute.lower() == 'both':
@@ -426,8 +391,24 @@ class FGSCountrate:
         """
 
         # Set values based on guider
-        throughput_dict = globals()['THROUGHPUT_G{}'.format(self.guider)]
-        cr_conversion = globals()['CR_CONVERSION_G{}'.format(self.guider)]
+        throughput_dict = globals()[f'THROUGHPUT_G{self.guider}']
+        cr_conversion = globals()[f'CR_CONVERSION_G{self.guider}']
+
+        # Update attributes with updated series - choose either SDSS or GSC - don't include both, to match GSSS
+        if self.survey == 'sdss':
+            all_list = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'sdss' in band.lower()]
+            present_list = [band for band in self._present_calculated_mags if 'tmass' in band.lower() or 'sdss' in band.lower()]
+        elif self.survey == 'gsc2':
+            all_list = [band for band in GSC_BAND_NAMES if 'tmass' in band.lower() or 'pgmag' in band.lower()]
+            present_list = [band for band in self._present_calculated_mags if 'tmass' in band.lower() or 'pgmag' in band.lower()]
+        self._all_calculated_mag_series = self._all_calculated_mag_series.loc[all_list]
+        self._all_calculated_mag_err_series = self._all_calculated_mag_err_series.loc[[name+'Err' for name in all_list]]
+        self._present_calculated_mags = present_list
+
+        # Check if we need to skip the star - if still missing J or K, cannot compute values for star
+        if 'tmassJMag' not in self._present_calculated_mags or 'tmassKsMag' not in self._present_calculated_mags:
+            raise ValueError(f'Cannot compute FGS countrate & magnitude for a guide star {self.id} '
+                             f'because it is missing too many bands.')
 
         # Calculate magnitude/countrate
         self.fgs_countrate, self.fgs_magnitude, self.band_dataframe = \
@@ -527,9 +508,9 @@ def get_conversion_constants(guider):
     guider : int
         The guider number, either 1 or 2
     """
-    cr_conversion = globals()['CR_CONVERSION_G{}'.format(guider)]
-    throughput = globals()['THROUGHPUT_G{}'.format(guider)]
-    mag_conversion = globals()['MAG_CONVERSION_G{}'.format(guider)]
+    cr_conversion = globals()[f'CR_CONVERSION_G{guider}']
+    throughput = globals()[f'THROUGHPUT_G{guider}']
+    mag_conversion = globals()[f'MAG_CONVERSION_G{guider}']
 
     df = pd.DataFrame(throughput.items(), index=np.arange(len(throughput)), columns=['Wavelength', 'Throughput'])
     sum_throughput = utils.trapezoid_sum(df, 'Throughput')

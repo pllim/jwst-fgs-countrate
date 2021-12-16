@@ -53,11 +53,7 @@ def test_convert_mag_to_jhk():
             data2 = copy.copy(fgs.gsc_series)
             for i in delete_list:
                 data2[i] = -999
-            try:
-                fgs.calc_jhk_mag(data=data2)
-                error = False
-            except ValueError:
-                error = True
+            fgs.calc_jhk_mag(data=data2)
 
             # Compare output to here
             method_names = []
@@ -65,54 +61,45 @@ def test_convert_mag_to_jhk():
                 if i in list(subset):
                     method_name_test = "convert_tmass_to_jhk"
 
-                elif set(['SDSSgMag', 'SDSSzMag']).issubset(subset):
+                elif {'SDSSgMag', 'SDSSzMag'}.issubset(subset):
                     method_name_test = "convert_sdssgz_to_jhk"
-                elif set(['SDSSgMag', 'SDSSiMag']).issubset(subset):
+                elif {'SDSSrMag', 'SDSSzMag'}.issubset(subset):
+                    method_name_test = "convert_sdssrz_to_jhk"
+                elif {'SDSSgMag', 'SDSSiMag'}.issubset(subset):
                     method_name_test = "convert_sdssgi_to_jhk"
-                elif set(['SDSSiMag', 'SDSSzMag']).issubset(subset):
-                    method_name_test = "convert_sdssiz_to_jhk"
+                # elif {'SDSSiMag', 'SDSSzMag'}.issubset(subset):  # Add back in once GSSS uses this pair
+                #     method_name_test = "convert_sdssiz_to_jhk"
 
-                elif set(['JpgMag', 'NpgMag']).issubset(subset):
+                elif {'JpgMag', 'NpgMag'}.issubset(subset):
                     method_name_test = "convert_gsc2bjin_to_jhk"
-                elif set(['FpgMag', 'NpgMag']).issubset(subset):
+                elif {'FpgMag', 'NpgMag'}.issubset(subset):
                     method_name_test = "convert_gsc2rfin_to_jhk"
-                elif set(['JpgMag', 'FpgMag']).issubset(subset):
+                elif {'JpgMag', 'FpgMag'}.issubset(subset):
                     method_name_test = "convert_gsc2bjrf_to_jhk"
 
                 else:
-                    method_name_test = 'cannot_convert_to_jhk'
+                    method_name_test = 'cannot_calculate'
 
                 method_names.append(method_name_test)
 
-                if method_name_test != getattr(fgs, '{}_convert_method'.format(i[5].lower())):
-                    if error is False:
-                        print(subset)
-                        print("    **", error, method_name_test, getattr(fgs, '{}_convert_method'.format(i[5].lower())))
+                failure_message = f'For input {list(subset)} and band {i[5]}: the test called {method_name_test} ' \
+                                  f'while the calc_jhk_mag method called ' \
+                                  f'{getattr(fgs, f"{i[5].lower()}_convert_method")}'
 
-                # If you could compute the JHK mags, check the same conversion method as used
-                if error is False:
-                    failure_message = 'For input {} and band {}: the test called {} while the calc_jhk_mag ' \
-                                      'method called {}'.format(list(subset), i[5], method_name_test,
-                                                                getattr(fgs, '{}_convert_method'.format(i[5].lower())))
-
-                    assert method_name_test == getattr(fgs, '{}_convert_method'.format(i[5].lower())), failure_message
-
-            # If you can't compute the JHK mags, check methods agree it's not possible
-            if error is True:
-                assert 'cannot_convert_to_jhk' in method_names
+                assert method_name_test == getattr(fgs, f'{i[5].lower()}_convert_method'), failure_message
 
 
 testdata = [
-    (15, 15, 15, 25, 25, 25, 'convert_tmass_to_jhk', 'convert_tmass_to_jhk', 'convert_tmass_to_jhk'),
-    (-999, -999, -999, 25, 15, 15, 'convert_sdssiz_to_jhk', 'convert_sdssiz_to_jhk', 'convert_sdssiz_to_jhk'),
+    (15, 15, 15, 25, 25, 25, 25, 'convert_tmass_to_jhk', 'convert_tmass_to_jhk', 'convert_tmass_to_jhk'),
+    (-999, -999, -999, 15, 25, 25, 15, 'convert_sdssgi_to_jhk', 'convert_sdssgi_to_jhk', 'convert_sdssgi_to_jhk'),
 ]
-ids = ['tmass conversion with faint sdss', 'sdss-zi conversion because of faint g-band']
-@pytest.mark.parametrize("jmag, hmag, kmag, gmag, zmag, imag, convert_j, convert_h, convert_k", testdata, ids=ids)
-def test_check_band_below_faint_limits_pass(jmag, hmag, kmag, gmag, zmag, imag, convert_j, convert_h, convert_k):
+ids = ['tmass conversion with faint sdss', 'sdss-gi conversion because of faint r an z bands']
+@pytest.mark.parametrize("jmag, hmag, kmag, gmag, zmag, rmag, imag, convert_j, convert_h, convert_k", testdata, ids=ids)
+def test_check_band_below_faint_limits_pass(jmag, hmag, kmag, gmag, zmag, rmag, imag, convert_j, convert_h, convert_k):
     """
     Test that the checking of faint bands will in certain cases have the code
     choose a conversion method that is not the "best" case conversion because
-    of the existense of faint stars.
+    of the existence of faint stars.
     """
     # Edit base data for specific test
     data = copy.copy(BASE_DATA)
@@ -120,6 +107,7 @@ def test_check_band_below_faint_limits_pass(jmag, hmag, kmag, gmag, zmag, imag, 
     data['tmassHMag'] = hmag
     data['tmassKsMag'] = kmag
     data['SDSSgMag'] = gmag
+    data['SDSSrMag'] = rmag
     data['SDSSzMag'] = zmag
     data['SDSSiMag'] = imag
     data['JpgMag'] = -999
@@ -147,6 +135,7 @@ def test_check_band_below_faint_limits_failure():
     data['tmassHMag'] = -999
     data['tmassKsMag'] = -999
     data['SDSSgMag'] = 25
+    data['SDSSrMag'] = -999
     data['SDSSzMag'] = 25
     data['SDSSiMag'] = 15
     data['JpgMag'] = -999
@@ -155,10 +144,41 @@ def test_check_band_below_faint_limits_failure():
 
     fgs = FGSCountrate(guide_star_id="N13I000018", guider=1)
 
+    _ = fgs.calc_jhk_mag(data)
+
+    assert fgs.j_convert_method == 'cannot_calculate'
+    assert fgs.h_convert_method == 'cannot_calculate'
+    assert fgs.k_convert_method == 'cannot_calculate'
+
     with pytest.raises(Exception) as e_info:
-        fgs.calc_jhk_mag(data)
-    assert 'There is not enough information on this guide star' in str(e_info.value)
-    assert 'tmassJMag' in str(e_info.value)
+        fgs.calc_fgs_cr_mag_and_err()
+    assert 'Cannot compute FGS countrate & magnitude for a guide star' in str(e_info.value)
+
+
+@pytest.mark.skip(reason="Removed test until this functionality is added back into the GSSS and this code")
+def test_bad_sdss_gz_limits():
+    """Test that when SDSSgMag and SDSSzMag color differences are bad, that conversion is skipped"""
+
+    gs_id = 'N13I000018'
+    guider = 1
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+
+    # Reset data to a set of constant, fake data with SDSS_g and z having bad color ranges and tmass missing
+    fgs.gsc_series = BASE_DATA
+    fgs.gsc_series['tmassJMag'] = -999
+    fgs.gsc_series['tmassHMag'] = -999
+    fgs.gsc_series['tmassKsMag'] = -999
+    fgs.gsc_series['SDSSgMag'] = 20
+    fgs.gsc_series['SDSSzMag'] = 14
+
+    # Convert to JHK magnitudes
+    fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
+        fgs.calc_jhk_mag(fgs.gsc_series)
+
+    # Check that the conversion method is the next SDSS one that doesn't include SDSS_g-z
+    assert fgs.j_convert_method == 'convert_sdssrz_to_jhk'
+    assert fgs.h_convert_method == 'convert_sdssrz_to_jhk'
+    assert fgs.k_convert_method == 'convert_sdssrz_to_jhk'
 
 
 def test_tmass_to_jhk():
@@ -246,12 +266,12 @@ def test_sdssgz_to_jhk():
     # Check conversion function matches hand-check here
     assert np.isclose(j_ser, 11.191999999999998, 1e-5)
     assert np.isclose(h_ser, 11.041, 1e-5)
-    assert np.isclose(k_ser, 10.749, 1e-5)
+    assert np.isclose(k_ser, 10.74, 1e-5)
 
     # Check uncertainties
     assert np.isclose(j_err_ser, 0.27265120293170503, 1e-5)
     assert np.isclose(h_err_ser, 0.24635741034709235, 1e-5)
-    assert np.isclose(k_err_ser, 0.2439674603454265, 1e-5)
+    assert np.isclose(k_err_ser, 0.24035821994429607, 1e-5)
 
 
 def test_sdssgi_to_jhk():

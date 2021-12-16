@@ -1,3 +1,5 @@
+import copy
+import itertools
 import warnings
 
 import numpy as np
@@ -6,6 +8,25 @@ import pytest
 
 import fgscountrate
 from fgscountrate.fgs_countrate_core import FGSCountrate
+from fgscountrate.constants import GSC_BAND_NAMES
+
+values = ['N13I000018 ', 420900912, 273.206729760604, 65.5335149359777,
+          8.3030233068735e-05, 0.000185964552890292, 14.9447, 0.285722,
+          14.0877, 0.29279299999999997, 13.7468, 0.239294, 13.33899974823,
+          0.025000000372529, 12.9930000305176, 0.0270000007003546,
+          12.9010000228882, 0.0270000007003546, 15.78594, 0.005142466,
+          14.654670000000001, 0.003211281, 14.27808, 0.0032733809999999997,
+          14.14432, 0.003414216, 14.106670000000001, 0.00433389]
+index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
+         'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
+         'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
+         'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
+         'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
+GSC_SERIES = pd.Series(values, index=index)
+
+TMASS_BANDS = ['tmassJMag', 'tmassHMag', 'tmassKsMag']
+SDSS_BANDS = ['SDSSuMag', 'SDSSgMag', 'SDSSrMag', 'SDSSiMag', 'SDSSzMag']
+GSC2_BANDS = ['JpgMag', 'FpgMag', 'NpgMag']
 
 
 test_query_fgs_countrate_magnitude_parameters = ['GSC242', 'GSC241']
@@ -61,19 +82,7 @@ def test_compute_countrate_magnitude():
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
 
     # Reset data to a set of constant, fake data
-    values = ['N13I000018 ', 420900912, 273.206729760604, 65.5335149359777,
-              8.3030233068735e-05, 0.000185964552890292, 14.9447, 0.285722,
-              14.0877, 0.29279299999999997, 13.7468, 0.239294, 13.33899974823,
-              0.025000000372529, 12.9930000305176, 0.0270000007003546,
-              12.9010000228882, 0.0270000007003546, 15.78594, 0.005142466,
-              14.654670000000001, 0.003211281, 14.27808, 0.0032733809999999997,
-              14.14432, 0.003414216, 14.106670000000001, 0.00433389]
-    index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
-             'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
-             'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
-             'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
-             'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
-    fgs.gsc_series = pd.Series(values, index=index)
+    fgs.gsc_series = copy.copy(GSC_SERIES)
 
     # Convert to JHK magnitudes
     fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
@@ -82,10 +91,10 @@ def test_compute_countrate_magnitude():
     # Compute FGS countrate and magnitude
     cr, cr_err, mag, mag_err = fgs.calc_fgs_cr_mag_and_err()
 
-    assert np.isclose(cr, 1777234.5129574337, 1e-5)
-    assert np.isclose(cr_err, 154340.24919027157, 1e-5)
-    assert np.isclose(mag, 13.310964314752303, 1e-5)
-    assert np.isclose(mag_err, 0.6657930516063038, 1e-5)
+    assert np.isclose(cr, 1786779.2896366853, 1e-5)
+    assert np.isclose(cr_err, 153161.72059228245, 1e-5)
+    assert np.isclose(mag, 13.304318358662279, 1e-5)
+    assert np.isclose(mag_err, 0.665287435671057, 1e-5)
 
 
 def test_convert_cr_to_fgs_mag():
@@ -118,42 +127,229 @@ def test_convert_fgs_mag_to_cr():
     assert np.isclose(cr, expected_cr, 1)
 
 
-def test_gscbj_sdssg_missing():
-    """Test that when GSC_B_J and SDSS_g are missing, their signal is set to 0"""
+def test_band_missing():
+    """Test that when a band (SDSS_g) is missing, it's signal is set to 0"""
 
     gs_id = 'N13I000018'
     guider = 1
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
 
-    # Reset data to a set of constant, fake data with GSC_B_J and SDSS_g missing
-    values = ['N13I000018', 420900912, 273.207, 65.5335, 8.30302e-05, 0.000185965,
-              -999, -999, 14.0877, 0.2927929, 13.7468, 0.239294,
-              13.339, 0.0250000003, 12.993, 0.0270000007, 12.901, 0.0270000007,
-              15.78594, 0.005142, -999, -999, 14.27808, 0.003273380,
-              14.1443, 0.003414216, 14.1067, 0.00433389]
-    index = ['hstID', 'gsc1ID', 'ra', 'dec', 'raErr', 'decErr',
-             'JpgMag', 'JpgMagErr', 'FpgMag', 'FpgMagErr', 'NpgMag', 'NpgMagErr',
-             'tmassJMag', 'tmassJMagErr', 'tmassHMag', 'tmassHMagErr', 'tmassKsMag', 'tmassKsMagErr',
-             'SDSSuMag', 'SDSSuMagErr', 'SDSSgMag', 'SDSSgMagErr', 'SDSSrMag', 'SDSSrMagErr',
-             'SDSSiMag', 'SDSSiMagErr', 'SDSSzMag', 'SDSSzMagErr']
-    fgs.gsc_series = pd.Series(values, index=index)
+    # Reset data to a set of constant, fake data with SDSS_g missing
+    fgs.gsc_series = copy.copy(GSC_SERIES)
+    fgs.gsc_series['SDSSgMag'] = -999
+    fgs.gsc_series['SDSSgMagErr'] = -999
 
     # Convert to JHK magnitudes
     fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
         fgs.calc_jhk_mag(fgs.gsc_series)
 
     # Compute FGS countrate and magnitude to get fgs.band_dataframe attribute
-    fgs.calc_fgs_cr_mag_and_err()
+    _ = fgs.calc_fgs_cr_mag_and_err()
 
-    # Check Mag, ABMag, and Flux = -999 and Signal is set to 0 for both
-    assert fgs.band_dataframe.at['JpgMag', 'Mag'] == -999
+    # Check Mag, ABMag, Flux, and Signal = -999
+    assert fgs.survey == 'sdss'
     assert fgs.band_dataframe.at['SDSSgMag', 'Mag'] == -999
-    assert fgs.band_dataframe.at['JpgMag', 'ABMag'] == -999
     assert fgs.band_dataframe.at['SDSSgMag', 'ABMag'] == -999
-    assert fgs.band_dataframe.at['JpgMag', 'Flux'] == -999
     assert fgs.band_dataframe.at['SDSSgMag', 'Flux'] == -999
-    assert fgs.band_dataframe.at['JpgMag', 'Signal'] == 0.0
-    assert fgs.band_dataframe.at['SDSSgMag', 'Signal'] == 0.0
+    assert fgs.band_dataframe.at['SDSSgMag', 'Signal'] == -999
+
+
+def test_dim_limits_partialsdss():
+    """Test that when some SDSS bands are below the dim limits, those bands
+    are not included in the JHK or count rate/magnitude calculations, but
+    the remaining SDSS bands are used."""
+
+    gs_id = 'N13I000018'
+    guider = 1
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+
+    # Reset data to a set of constant, fake data with TMASS not present and 2 SDSS bands set to dim
+    fgs.gsc_series = copy.copy(GSC_SERIES)
+    for ind in TMASS_BANDS:
+        fgs.gsc_series.loc[ind] = -999
+    fgs.gsc_series['SDSSgMag'] = 17
+    fgs.gsc_series['SDSSrMag'] = 24  # dim
+    fgs.gsc_series['SDSSzMag'] = 24  # dim
+    fgs.gsc_series['SDSSiMag'] = 17
+
+    # Convert to JHK magnitudes
+    fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
+        fgs.calc_jhk_mag(fgs.gsc_series)
+
+    # Check conversion method
+    assert fgs.j_convert_method == 'convert_sdssgi_to_jhk'
+    assert fgs.h_convert_method == 'convert_sdssgi_to_jhk'
+    assert fgs.k_convert_method == 'convert_sdssgi_to_jhk'
+
+    # Compute FGS countrate and magnitude to get fgs.band_dataframe attribute
+    _ = fgs.calc_fgs_cr_mag_and_err()
+
+    # Check Mag, ABMag, Flux, and Signal = -999 for g and r
+    assert fgs.survey == 'sdss'
+
+    assert fgs.band_dataframe.at['SDSSzMag', 'ABMag'] == -999
+    assert fgs.band_dataframe.at['SDSSzMag', 'Flux'] == -999
+    assert fgs.band_dataframe.at['SDSSzMag', 'Signal'] == -999
+
+    assert fgs.band_dataframe.at['SDSSrMag', 'ABMag'] == -999
+    assert fgs.band_dataframe.at['SDSSrMag', 'Flux'] == -999
+    assert fgs.band_dataframe.at['SDSSrMag', 'Signal'] == -999
+
+
+def test_dim_limits_allsdss():
+    """Test that when all SDSS bands are below the dim limits, they are not included in the
+    JHK or count rate/magnitude calculations, and GSC2 bands are used instead."""
+
+    gs_id = 'N13I000018'
+    guider = 1
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+
+    # Reset data to a set of constant, fake data with TMASS not present and all SDSS bands set to dim
+    fgs.gsc_series = copy.copy(GSC_SERIES)
+    for ind in TMASS_BANDS:
+        fgs.gsc_series.loc[ind] = -999
+    fgs.gsc_series['SDSSgMag'] = 24
+    fgs.gsc_series['SDSSrMag'] = 24
+    fgs.gsc_series['SDSSzMag'] = 24
+    fgs.gsc_series['SDSSiMag'] = 24
+
+    # Convert to JHK magnitudes
+    fgs.j_mag, fgs.j_mag_err, fgs.h_mag, fgs.h_mag_err, fgs.k_mag, fgs.k_mag_err = \
+        fgs.calc_jhk_mag(fgs.gsc_series)
+
+    # Check conversion method
+    assert fgs.j_convert_method == 'convert_gsc2bjin_to_jhk'
+    assert fgs.h_convert_method == 'convert_gsc2bjin_to_jhk'
+    assert fgs.k_convert_method == 'convert_gsc2bjin_to_jhk'
+
+    # Check that no SDSS bands made it into the present bands list
+    assert ['sdss' not in substring.lower() for substring in fgs._present_queried_mags]
+    assert ['sdss' not in substring.lower() for substring in fgs._present_calculated_mags]
+
+    # Compute FGS countrate and magnitude to get fgs.band_dataframe attribute
+    _ = fgs.calc_fgs_cr_mag_and_err()
+
+    # Check this calculation should only be done with GSC bands
+    assert fgs.survey == 'gsc2'
+    assert fgs.band_dataframe.at['JpgMag', 'ABMag'] != -999
+    assert fgs.band_dataframe.at['FpgMag', 'ABMag'] != -999
+    assert fgs.band_dataframe.at['NpgMag', 'ABMag'] != -999
+
+
+def test_sdss_or_gsc():
+    """Test that only SDSS or GSC data is used to compute CR and Mag, and not a combination of the two"""
+
+    gs_id = 'N13I000018'
+    guider = 1
+
+    # Test SDSS only - set tmass to missing (sdss will be chosen over gsc already)
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+    fgs.gsc_series = copy.copy(GSC_SERIES)
+    for ind in TMASS_BANDS:
+        fgs.gsc_series.loc[ind] = -999
+    fgs.calc_jhk_mag(fgs.gsc_series)
+    _ = fgs.calc_fgs_cr_mag_and_err()
+    # check gsc bands have been fully removed
+    assert False not in ['pgMag' not in i for i in fgs._present_calculated_mags]
+    # check that gsc bands are all excluded from calculations
+    assert fgs.survey == 'sdss'
+    gsc_index = [i for i in fgs.band_dataframe['ABMag'].index if 'pgMag' in i]
+    assert all(-999 == fgs.band_dataframe['ABMag'][gsc_index].values)
+
+    # Test GSC only - set tmass and SDSS g, z, and i to missing (keep r).
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+    fgs.gsc_series = copy.copy(GSC_SERIES)
+    for ind in TMASS_BANDS:
+        fgs.gsc_series.loc[ind] = -999
+    fgs.gsc_series['SDSSgMag'] = -999
+    fgs.gsc_series['SDSSzMag'] = -999
+    fgs.gsc_series['SDSSiMag'] = -999
+    fgs.calc_jhk_mag(fgs.gsc_series)
+    _ = fgs.calc_fgs_cr_mag_and_err()
+    # check sdss bands have been fully removed
+    assert False not in ['SDSS' not in i for i in fgs._present_calculated_mags]
+    # check that sdss bands are all excluded from calculations
+    assert fgs.survey == 'gsc2'
+    sdss_index = [i for i in fgs.band_dataframe['ABMag'].index if 'SDSS' in i]
+    assert all(-999 == fgs.band_dataframe['ABMag'][sdss_index].values)
+
+    # Test 2MASS only - set everything to missing except for tmass
+    fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+    fgs.gsc_series = copy.copy(GSC_SERIES)
+    for ind in SDSS_BANDS:
+        fgs.gsc_series.loc[ind] = -999
+    for ind in GSC2_BANDS:
+        fgs.gsc_series.loc[ind] = -999
+    fgs.calc_jhk_mag(fgs.gsc_series)
+    _ = fgs.calc_fgs_cr_mag_and_err()
+    # check sdss and gsc bands have been fully removed
+    assert False not in ['SDSS' not in i for i in fgs._present_calculated_mags]
+    assert False not in ['pgMag' not in i for i in fgs._present_calculated_mags]
+    # check that sdss and gsc bands are all excluded from calculations
+    assert fgs.survey == 'gsc2'
+    sdss_index = [i for i in fgs.band_dataframe['ABMag'].index if 'SDSS' in i]
+    assert all(-999 == fgs.band_dataframe['ABMag'][sdss_index].values)
+    gsc_index = [i for i in fgs.band_dataframe['ABMag'].index if 'pgMag' in i]
+    assert all(-999 == fgs.band_dataframe['ABMag'][gsc_index].values)
+
+
+def test_sdss_or_gsc_all_combinations():
+    """ Full test of all combinations of bands to confirm that they correctly use only SDSS or only GSC
+    values (or neither) when calculating the count rate and magnitude
+    """
+    gs_id = 'N13I000018'
+    guider = 1
+
+    # Iterate through every combination of present magnitudes
+    for l in range(0, len(GSC_BAND_NAMES) + 1):
+        for present_calculated_mags in itertools.combinations(GSC_BAND_NAMES, l):
+            fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
+            gscseries = copy.copy(GSC_SERIES)
+
+            # Set everything to -999 except for the present mags
+            missing_mags = set(GSC_BAND_NAMES) - set(present_calculated_mags)
+            for ind in missing_mags:
+                gscseries.loc[ind] = -999
+            df = gscseries.to_frame().T
+
+            try:
+                _ = fgs.query_fgs_countrate_magnitude(data_frame=df)
+            except ValueError as e:
+                assert 'Cannot compute FGS countrate & magnitude for a guide star' in str(e)
+                continue
+
+            # Check survey
+            # Check one of the SDSS pairs is present
+            if ('SDSSgMag' in fgs._present_calculated_mags and 'SDSSzMag'  in fgs._present_calculated_mags) or \
+               ('SDSSrMag' in fgs._present_calculated_mags and 'SDSSzMag' in fgs._present_calculated_mags) or \
+               ('SDSSgMag' in fgs._present_calculated_mags and 'SDSSiMag' in fgs._present_calculated_mags):
+                assert fgs.survey == 'sdss', f'Original present mags of {fgs._present_calculated_mags} not flagged as survey=sdss'
+            # Anything else should be marked GSC2
+            else:
+                assert fgs.survey == 'gsc2', f'Original present mags of {present_calculated_mags} not flagged as survey=gsc2'
+
+
+            # Check the band_dataframe indexes and values make sense
+            if fgs.survey == 'sdss':
+                # Check at least some SDSS values are included and no GSC2 values are included
+                assert len(set(SDSS_BANDS) & set(fgs.band_dataframe.index.tolist())) != 0
+                assert len(set(GSC2_BANDS) & set(fgs.band_dataframe.index.tolist())) == 0
+
+                # Check the correct survey's bands not in present_calculated_mags are set to -999
+                for band in (set(SDSS_BANDS) & missing_mags):
+                    assert fgs.band_dataframe['Signal'][band] == -999
+                for band in (set(SDSS_BANDS) & set(present_calculated_mags)):
+                    assert fgs.band_dataframe['Signal'][band] != -999
+
+            elif fgs.survey == 'gsc2':
+                # Check no SDSS values are included
+                assert len(set(SDSS_BANDS) & set(fgs.band_dataframe.index.tolist())) == 0
+
+                # Check the correct survey's bands not in present_calculated_mags are set to -999
+                for band in (set(GSC2_BANDS) & missing_mags):
+                    assert fgs.band_dataframe['Signal'][band] == -999
+                for band in (set(GSC2_BANDS) & set(present_calculated_mags)):
+                    assert fgs.band_dataframe['Signal'][band] != -999
 
 
 def test_errors():
@@ -162,19 +358,22 @@ def test_errors():
     gs_id = 'N13I000018'
     guider = 1
 
-    # Test 1: data only includes 2MASS
+    # Test 1: data is missing too many bands - only has J and H (so cannot compute K)
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
     fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC242').iloc[0]
 
-    fgs._present_calculated_mags = ['tmassJMag', 'tmassHMag', 'tmassKsMag']
+    fgs._present_calculated_mags = ['tmassJMag', 'tmassHMag']
     for index in set(fgscountrate.fgs_countrate_core.GSC_BAND_NAMES) - set(fgs._present_calculated_mags):
         fgs.gsc_series.loc[index] = -999
     fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgscountrate.fgs_countrate_core.GSC_BAND_NAMES]
+    fgs._all_calculated_mag_err_series = fgs.gsc_series.loc[[band+'Err' for band
+                                                             in fgscountrate.fgs_countrate_core.GSC_BAND_NAMES]]
+    fgs.survey = 'gsc2'
 
     with pytest.raises(ValueError) as excinfo:
         fgs.calc_fgs_cr_mag_and_err()
     assert 'Cannot compute' in str(excinfo.value), 'Attempted to compute the FGS countrate & ' \
-                                                   'magnitude despite only having the 2MASS bands'
+                                                   'magnitude despite only have J and H bands'
 
     # Test 2: Guider number is invalid
     guider = 3
@@ -193,10 +392,11 @@ def test_output_options():
     guider = 2
     fgs = FGSCountrate(guide_star_id=gs_id, guider=guider)
     fgs.gsc_series = fgscountrate.utils.query_gsc(gs_id=gs_id, catalog='GSC242').iloc[0]
-    fgs._present_calculated_mags = fgscountrate.fgs_countrate_core.GSC_BAND_NAMES
-    fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgs._present_calculated_mags]
+    fgs._present_calculated_mags = ['tmassJMag', 'tmassHMag', 'tmassKsMag', 'SDSSgMag', 'SDSSrMag', 'SDSSiMag']
+    fgs._all_calculated_mag_series = fgs.gsc_series.loc[fgscountrate.GSC_BAND_NAMES]
     mag_err_list = [fgs.gsc_series[ind + 'Err'] for ind in fgs._all_calculated_mag_series.index]
     fgs._all_calculated_mag_err_series = pd.Series(mag_err_list, index=fgs._all_calculated_mag_series.index+'Err')
+    fgs.survey = 'sdss'
 
     # Test output from calc_fgs_cr_mag_and_err()
     return_list = fgs.calc_fgs_cr_mag_and_err()

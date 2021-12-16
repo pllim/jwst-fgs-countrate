@@ -25,7 +25,7 @@ except FileNotFoundError:
     print('Could not determine fgscountrate version')
     __version__ = '0.0.0'
 
-__minimum_python_version__ = "3.5"
+__minimum_python_version__ = "3.6"
 
 
 class UnsupportedPythonError(Exception):

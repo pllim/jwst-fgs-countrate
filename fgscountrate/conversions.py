@@ -54,8 +54,8 @@ def convert_tmass_to_jhk(data, output_mag):
             k_mag = data[0]
             k_err = data[1]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (mag, mag_err) or a pd.Series output "
-                        "from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         return j_mag, j_err
@@ -63,6 +63,72 @@ def convert_tmass_to_jhk(data, output_mag):
         return h_mag, h_err
     elif output_mag.upper() == 'K':
         return k_mag, k_err
+    else:
+        raise ValueError("output_mag must be set to either J, H, or K")
+
+
+def convert_sdssrz_to_jhk(data, output_mag):
+    """
+    Convert from SDSS_r mag and SDSS_z mag to J,H,K mag
+
+    Parameters
+    ----------
+    data : Pandas Series or tuple
+        Either a pandas Series as the output from a query
+        of the Guide Star Catalog or a tuple containing the
+        values (SDSS_r, SDSS_r_err, SDSS_z, SDSS_z_err)
+    output_mag : str
+        The magnitude you want to convert to. Options
+        are 'J', 'H', or 'K'.
+
+    Returns
+    -------
+    JHK_mag : float
+        The magnitude (J, H, or K based on the output_mag keyword)
+    JHK_err : float
+        The uncertainty of the magnitude
+    """
+    if isinstance(data, pd.Series):
+        r_mag = data['SDSSrMag']
+        r_err = data['SDSSrMagErr']
+        z_mag = data['SDSSzMag']
+        z_err = data['SDSSzMagErr']
+    elif isinstance(data, tuple):
+        r_mag = data[0]
+        r_err = data[1]
+        z_mag = data[2]
+        z_err = data[3]
+    else:
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
+
+    if output_mag.upper() == 'J':
+        def calc_j(r, z):
+            return r - 0.71 - 1.93 * (r - z) + 0.66 * (r - z) ** 2 - 0.24 * (r - z) ** 3 + 0.30 * (r - z) ** 4
+        j = calc_j(r_mag, z_mag)
+        err_j_r = calc_j(r_mag + r_err, z_mag) - j
+        err_j_z = calc_j(r_mag, z_mag + z_err) - j
+        sigma_j_eqn = 0.1
+        j_err = np.sqrt(err_j_r**2 + err_j_z**2 + sigma_j_eqn**2)
+        return j, j_err
+    elif output_mag.upper() == 'H':
+        def calc_h(r, z):
+            return r - 0.85 - 3.26 * (r - z) + 1.81 * (r - z) ** 2 - 0.63 * (r - z) ** 3 + 0.08 * (r - z) ** 4
+        h = calc_h(r_mag, z_mag)
+        err_h_r = calc_h(r_mag + r_err, z_mag) - h
+        err_h_z = calc_h(r_mag, z_mag + z_err) - h
+        sigma_h_eqn = 0.128
+        h_err = np.sqrt(err_h_r**2 + err_h_z**2 + sigma_h_eqn**2)
+        return h, h_err
+    elif output_mag.upper() == 'K':
+        def calc_k(r, z):
+            return r - 0.91 - 3.38 * (r - z) + 1.77 * (r - z) ** 2 - 0.60 * (r - z) ** 3 + 0.07 * (r - z) ** 4
+        k = calc_k(r_mag, z_mag)
+        err_k_r = calc_k(r_mag + r_err, z_mag) - k
+        err_k_z = calc_k(r_mag, z_mag + z_err) - k
+        sigma_k_eqn = 0.179
+        k_err = np.sqrt(err_k_r**2 + err_k_z**2 + sigma_k_eqn**2)
+        return k, k_err
     else:
         raise ValueError("output_mag must be set to either J, H, or K")
 
@@ -99,8 +165,8 @@ def convert_sdssgz_to_jhk(data, output_mag):
         z_mag = data[2]
         z_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (g,g_err,z,z_err) or a pd.Series output "
-                        "from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(g, z):
@@ -122,7 +188,7 @@ def convert_sdssgz_to_jhk(data, output_mag):
         return h, h_err
     elif output_mag.upper() == 'K':
         def calc_k(g, z):
-            return g - 0.87 - 1.70 * (g - z) - 0.01 * (g - z) ** 2 + 0.07 * (g - z) ** 3 - 0.001 * (g - z) ** 4
+            return g - 0.87 - 1.70 * (g - z) - 0.01 * (g - z) ** 2 + 0.07 * (g - z) ** 3 - 0.01 * (g - z) ** 4
         k = calc_k(g_mag, z_mag)
         err_k_g = calc_k(g_mag + g_err, z_mag) - k
         err_k_z = calc_k(g_mag, z_mag + z_err) - k
@@ -165,8 +231,8 @@ def convert_sdssgi_to_jhk(data, output_mag):
         i_mag = data[2]
         i_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (g,g_err,i,i_err) or a pd.Series output "
-                        "from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(g, i):
@@ -231,8 +297,8 @@ def convert_sdssiz_to_jhk(data, output_mag):
         z_mag = data[2]
         z_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (i,i_err,z,z_err) or a pd.Series output "
-                        "from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(i, z):
@@ -297,8 +363,8 @@ def convert_gsc2bjin_to_jhk(data, output_mag):
         i_n_mag = data[2]
         i_n_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (b_j,b_j_err,i_n,i_n_err) "
-                        "or a pd.Series output from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(b_j, i_n): return b_j - 1.30 * (b_j - i_n) - 0.15
@@ -360,8 +426,8 @@ def convert_gsc2rfin_to_jhk(data, output_mag):
         i_n_mag = data[2]
         i_n_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (r_f,r_f_err,i_n,i_n_err) or a "
-                        "pd.Series output from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(r_f, i_n): return r_f + 0.01 * (r_f - i_n) ** 2 - 1.56 * (r_f - i_n) - 0.44
@@ -423,8 +489,8 @@ def convert_gsc2bjrf_to_jhk(data, output_mag):
         r_f_mag = data[2]
         r_f_err = data[3]
     else:
-        raise TypeError("{} is not a valid type for data. Must be a tuple (b_j,b_j_err,r_f,r_f_err) or a "
-                        "pd.Series output from the Guide Star Catalog".format(type(data)))
+        raise TypeError(f"{type(data)} is not a valid type for data. Must be a tuple (mag, mag_err) "
+                        f"or a pd.Series output from the Guide Star Catalog")
 
     if output_mag.upper() == 'J':
         def calc_j(b_j, r_f): return b_j - 0.39 * (b_j - r_f) ** 2 - 0.96 * (b_j - r_f) - 0.55
@@ -452,3 +518,12 @@ def convert_gsc2bjrf_to_jhk(data, output_mag):
         return k, k_err
     else:
         raise ValueError("output_mag must be set to either J, H, or K")
+
+
+def cannot_calculate(**kwargs):
+    """
+    Helper function to be called when there is not enough available data
+    to preform a J, H, or K calculation. In this case, we'll return -999
+    for the band and error.
+    """
+    return -999, -999
