@@ -125,6 +125,21 @@ def query_gsc(gs_id=None, ra=None, dec=None, cone_radius=None, minra=None, maxra
     if catalog in ['GSC2412', 'GSC241']:
         data_frame = data_frame.rename(columns={'tmassJmag': 'tmassJMag', 'tmassJmagErr': 'tmassJMagErr',
                                                 'tmassHmag': 'tmassHMag', 'tmassHmagErr': 'tmassHMagErr'})
+    elif catalog in ['GSC23']:
+        data_frame = data_frame.rename(columns={'JMag': 'tmassJMag', 'JMagErr': 'tmassJMagErr',
+                                                'HMag': 'tmassHMag', 'HMagErr': 'tmassHMagErr',
+                                                'KMag': 'tmassKsMag', 'KMagErr': 'tmassKsMagErr',})
+
+    # For GSC 2.3 we don't have SDSS data so make sure this is clear in the data frame
+    if catalog in ['GSC23']:
+        check_list = ['SDSSuMag', 'SDSSgMag', 'SDSSrMag', 'SDSSiMag', 'SDSSzMag',
+                      'SDSSuMagErr', 'SDSSgMagErr', 'SDSSrMagErr', 'SDSSiMagErr', 'SDSSzMagErr']
+        for item in check_list:
+            try:
+                data_frame[item]
+            except KeyError:
+                data_frame[item] = -999
+
     return data_frame
 
 
