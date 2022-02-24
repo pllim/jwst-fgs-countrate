@@ -88,7 +88,7 @@ class FGSCountrate:
         Parameters
         ----------
         catalog : str, Optional
-            There are 5 different GSC2 versions available. Default is GSC 2.4.2
+            There are different GSC2 versions available. Default is GSC 2.4.2.1
             Call GSC241 to access GSC2.4.1
             Call GSC242 to access GSC2.4.2
         data_frame : Pandas dataframe, optional
@@ -107,8 +107,6 @@ class FGSCountrate:
         fgs_magnitude_err : float
             Error of the FGS magnitude
         """
-        if catalog is None:
-            catalog = 'GSC242'
 
         # Query GSC to get data on the guide star
         if data_frame is None:
