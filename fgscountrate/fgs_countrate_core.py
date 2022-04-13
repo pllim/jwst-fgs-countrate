@@ -9,7 +9,7 @@ Done through
     Converting GSC band data to J, H, and K magnitudes
     Calculating the FGS countrate and FGS magnitude
 
-Code by Shannon Osborne. Contact at sosborne@stsci.edu
+Code by Shannon Osborne.
 """
 
 from collections import OrderedDict
