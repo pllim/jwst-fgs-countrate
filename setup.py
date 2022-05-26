@@ -26,7 +26,7 @@ setup(name='fgscountrate',
         # 'License :: OSI Approved :: MIT License',
         'Intended Audience :: Science/Research',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Scientific/Engineering :: Astronomy'
       ],
