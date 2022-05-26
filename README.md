@@ -3,10 +3,10 @@ JWST FGS countrate estimation
 
 [![STScI](https://img.shields.io/badge/powered%20by-STScI-blue.svg?colorA=707170&colorB=3e8ddd&style=flat)](http://www.stsci.edu)
 [![Python](https://img.shields.io/badge/Python-3.6%20%7C%203.7%20%7C%203.8-blue.svg)](https://www.python.org/)
-[![Build Status](https://ssbjenkins.stsci.edu/job/STScI/job/jwst-fgs-countrate/job/master/badge/icon)](https://ssbjenkins.stsci.edu/job/STScI/job/jwst-fgs-countrate/job/master/)
+[![Build Status](https://github.com/spacetelescope/jwst-fgs-countrate/workflows/CI/badge.svg)](https://github.com/spacetelescope/jwst-fgs-countrate/actions)
 
 
-jwst-fgs-countrate converts guide star information from different catalogs into the expected countrate for the JWST Fine Guidance Sensor (FGS). This is done by querying the Guide Star Catalog (containing 2MASS, SDSS, and GSC2) based on the input of the guide star’s HST ID number and using information from that catalog to calculate a count rate and FGS magnitude. The code is aimed to match the version of the Guide Star Selection System used during JWST commisisoning.
+jwst-fgs-countrate converts guide star information from different catalogs into the expected count rate for the JWST Fine Guidance Sensor (FGS). This is done by querying the Guide Star Catalog (containing 2MASS, SDSS, and GSC2) based on the input of the guide star’s HST ID number and using information from that catalog to calculate a count rate and FGS magnitude. The code is aimed to match the version of the Guide Star Selection System used during JWST commissioning.
 
 
 Example Use
