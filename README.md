@@ -93,13 +93,13 @@ When releasing a new version, developers should change the version number in `se
 
 Collaborators
 -----------------
-Sherie Holfeltz ([@stholfeltz](https://github.com/stholfeltz))
-Pierre Chayer
+- Sherie Holfeltz ([@stholfeltz](https://github.com/stholfeltz))
+- Pierre Chayer
 
 
 Former Developer
 -----------------
-Shannon Osborne ([@shanosborne](https://github.com/shanosborne))
+- Shannon Osborne ([@shanosborne](https://github.com/shanosborne))
 
 
 License
