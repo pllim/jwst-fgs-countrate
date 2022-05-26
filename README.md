@@ -6,9 +6,7 @@ JWST FGS countrate estimation
 [![Build Status](https://ssbjenkins.stsci.edu/job/STScI/job/jwst-fgs-countrate/job/master/badge/icon)](https://ssbjenkins.stsci.edu/job/STScI/job/jwst-fgs-countrate/job/master/)
 
 
-jwst-fgs-countrate converts guide star information from different catalogs into the expected countrate for the JWST Fine Guidance Sensor (FGS). This is done by querying the Guide Star Catalog (containing 2MASS, SDSS, and GSC2) based on the input of the guide star’s HST ID number and using information from that catalog to calculate a count rate and FGS magnitude. The code is aimed to match the version of the Guide Star Selection System used during JWST commisisoning. 
-
-Collaborators include Shannon Osborne ([@shanosborne](https://github.com/shanosborne)), Sherie Holfeltz ([@stholfeltz](https://github.com/stholfeltz)), and Pierre Chayer.
+jwst-fgs-countrate converts guide star information from different catalogs into the expected countrate for the JWST Fine Guidance Sensor (FGS). This is done by querying the Guide Star Catalog (containing 2MASS, SDSS, and GSC2) based on the input of the guide star’s HST ID number and using information from that catalog to calculate a count rate and FGS magnitude. The code is aimed to match the version of the Guide Star Selection System used during JWST commisisoning.
 
 
 Example Use
@@ -91,6 +89,18 @@ This repository follows the principles of ["Semantic Versioning"](https://semver
 > 3. PATCH version when you make backwards compatible bug fixes.
 
 When releasing a new version, developers should change the version number in `setup.py`, merge this change in a PR, and then release the package via the GitHub interface.
+
+
+Collaborators
+-----------------
+Sherie Holfeltz ([@stholfeltz](https://github.com/stholfeltz))
+Pierre Chayer
+
+
+Former Developer
+-----------------
+Shannon Osborne ([@shanosborne](https://github.com/shanosborne))
+
 
 License
 -------
