@@ -2,7 +2,7 @@ JWST FGS countrate estimation
 -----------------------------
 
 [![STScI](https://img.shields.io/badge/powered%20by-STScI-blue.svg?colorA=707170&colorB=3e8ddd&style=flat)](http://www.stsci.edu)
-[![Python](https://img.shields.io/badge/Python-3.6%20%7C%203.7%20%7C%203.8-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.8%20%7C%203.9%20%7C%203.10-blue.svg)](https://www.python.org/)
 [![Build Status](https://github.com/spacetelescope/jwst-fgs-countrate/workflows/CI/badge.svg)](https://github.com/spacetelescope/jwst-fgs-countrate/actions)
 
 
